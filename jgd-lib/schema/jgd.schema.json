@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "https://yourdomain.dev/jgd/schema.json",
+  "title": "JGD (JSON Generator Definition)",
+  "type": "object",
+  "properties": {
+    "$format": { "const": "jgd/v1" },
+    "version": { "type": "string" },
+    "seed": { "type": "integer" },
+    "defaultLocale": { "type": "string", "default": "EN" },
+
+    "entities": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/Entity" }
+    },
+
+    "root": { "$ref": "#/$defs/RootEntity" }
+  },
+
+  "oneOf": [
+    { "required": ["entities"], "not": { "required": ["root"] } },
+    { "required": ["root"], "not": { "required": ["entities"] } }
+  ],
+
+  "$defs": {
+    "Field": {
+      "description": "A field specification",
+      "oneOf": [
+        { "$ref": "#/$defs/Faker" },
+        { "$ref": "#/$defs/Object" },
+        { "$ref": "#/$defs/Array" },
+        { "$ref": "#/$defs/Number" },
+        { "$ref": "#/$defs/Optional" },
+        { "$ref": "#/$defs/Template" },
+        { "$ref": "#/$defs/Ref" },
+        { "type": "string" },
+        { "type": "integer" },
+        { "type": "number" },
+        { "type": "boolean" },
+        { "type": "null" }
+      ]
+    },
+
+    "Faker": {
+      "type": "object",
+      "required": ["faker"],
+      "properties": {
+        "faker": {
+          "type": "string",
+          "pattern": "^[a-z_]+(\\.[a-zA-Z0-9_]+)*$"
+        },
+        "locale": { "type": "string" },
+        "between": {
+          "type": "array",
+          "items": [{ "type": "string" }, { "type": "string" }],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "tz": { "type": "string" },
+        "words": {
+          "type": "array",
+          "items": [{ "type": "integer" }, { "type": "integer" }],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "count": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": true
+    },
+
+    "Object": {
+      "type": "object",
+      "required": ["object"],
+      "properties": {
+        "object": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/Field" }
+        }
+      }
+    },
+
+    "Array": {
+      "type": "object",
+      "required": ["array"],
+      "properties": {
+        "array": {
+          "type": "object",
+          "required": ["of"],
+          "properties": {
+            "length": {
+              "oneOf": [
+                { "type": "integer", "minimum": 0 },
+                {
+                  "type": "array",
+                  "items": [{ "type": "integer" }, { "type": "integer" }],
+                  "minItems": 2,
+                  "maxItems": 2
+                }
+              ]
+            },
+            "of": { "$ref": "#/$defs/Field" }
+          }
+        }
+      }
+    },
+
+    "Number": {
+      "type": "object",
+      "required": ["number"],
+      "properties": {
+        "number": {
+          "type": "object",
+          "properties": {
+            "min": { "type": "number" },
+            "max": { "type": "number" },
+            "integer": { "type": "boolean" }
+          },
+          "required": ["min", "max"]
+        }
+      }
+    },
+
+    "Optional": {
+      "type": "object",
+      "required": ["optional"],
+      "properties": {
+        "optional": {
+          "type": "object",
+          "required": ["of"],
+          "properties": {
+            "of": { "$ref": "#/$defs/Field" },
+            "prob": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        }
+      }
+    },
+
+    "Template": {
+      "type": "object",
+      "required": ["template"],
+      "properties": {
+        "template": { "type": "string" }
+      }
+    },
+
+    "Ref": {
+      "type": "object",
+      "required": ["ref"],
+      "properties": {
+        "ref": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]+\\.[a-zA-Z0-9_./-]+$"
+        }
+      }
+    },
+
+    "EntityCommon": {
+      "type": "object",
+      "required": ["fields"],
+      "properties": {
+        "seed": { "type": "integer" },
+        "uniqueBy": { "type": "array", "items": { "type": "string" } },
+        "fields": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/Field" }
+        },
+        "count": {
+          "oneOf": [
+            { "type": "integer", "minimum": 0 },
+            {
+              "type": "array",
+              "items": [{ "type": "integer" }, { "type": "integer" }],
+              "minItems": 2,
+              "maxItems": 2
+            }
+          ]
+        }
+      }
+    },
+
+    "Entity": {
+      "allOf": [{ "$ref": "#/$defs/EntityCommon" }, { "required": ["count"] }]
+    },
+
+    "RootEntity": {
+      "allOf": [{ "$ref": "#/$defs/EntityCommon" }]
+    }
+  },
+
+  "additionalProperties": false
+}

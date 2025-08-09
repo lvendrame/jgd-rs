@@ -1,0 +1,11 @@
+{
+  "$format": "jgd/v1",
+  "version": "1.1",
+  "root": {
+    "count": 3,
+    "fields": {
+      "id": { "faker": "uuid.v4" },
+      "title": { "faker": "lorem.sentence", "words": [3, 6] }
+    }
+  }
+}

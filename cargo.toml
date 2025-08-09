@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "jgd-lib",
+    "jgd-rs-cli"
+]
+resolver = "2"
+
