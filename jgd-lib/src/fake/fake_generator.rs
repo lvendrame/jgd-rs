@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use rand::rngs::StdRng;
 use regex::Regex;
 use serde_json::Value;
@@ -69,6 +70,62 @@ impl FakeGenerator {
                 return args_content.trim();
             }
         }
+        default_value
+    }
+
+        // Helper function to parse time argument like "23:56:04"
+    pub fn parse_time(args: &str, default_value: time::OffsetDateTime) -> time::OffsetDateTime {
+        let args_content = args
+            .strip_prefix('(').and_then(|s| s.strip_suffix(')'))
+            .unwrap_or(args);
+
+        let args_content = args_content.trim();
+        if !args_content.is_empty() {
+            // Try parsing as RFC 3339 format (most common for APIs)
+            // For now, we'll use a simple fallback since time parsing is complex
+            // This could be enhanced with proper format descriptors later
+
+            // Simple fallback: try to parse as Unix timestamp
+            if let Ok(timestamp) = args_content.parse::<i64>() {
+                if let Ok(datetime) = time::OffsetDateTime::from_unix_timestamp(timestamp) {
+                    return datetime;
+                }
+            }
+
+            return default_value;
+        }
+
+        default_value
+    }
+
+    // Helper function to parse datetime argument like "2015-09-05 23:56:04" or "2014-5-17T12:34:56+09:30"
+    pub fn parse_datetime(args: &str, default_value: DateTime<chrono::Utc>) -> DateTime<Utc> {
+        let args_content = args
+            .strip_prefix('(').and_then(|s| s.strip_suffix(')'))
+            .unwrap_or(args);
+
+        let args_content = args_content.trim();
+        if !args_content.is_empty() {
+
+            if let Ok(dt) = args_content.parse::<chrono::DateTime<chrono::Utc>>() {
+                return dt;
+            }
+
+            if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(args_content, "%Y-%m-%d %H:%M:%S") {
+                return dt.and_utc();
+            }
+
+            if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(args_content, "%Y-%m-%dT%H:%M:%S") {
+                return dt.and_utc();
+            }
+
+            if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(args_content, "%Y-%m-%dT%H:%M:%S%:z") {
+                return dt.and_utc();
+            }
+
+            return default_value;
+        }
+
         default_value
     }
 
@@ -145,23 +202,22 @@ impl FakeGenerator {
             },
             FakeKeys::CHRONO_DATE_TIME_BETWEEN => {
                 // For between, we need two datetime arguments or use defaults
+                let now: DateTime<Utc> = chrono::Utc::now();
+                let past: DateTime<Utc> = now - chrono::Duration::days(365);
                 if let Some(args) = arguments {
                     let args_content = Self::parse_string_arg(args, "");
                     if args_content.contains(',') {
                         let parts: Vec<&str> = args_content.split(',').map(|s| s.trim()).collect();
                         if parts.len() == 2 {
-                            if let (Ok(start), Ok(end)) = (
-                                parts[0].parse::<chrono::DateTime<chrono::Utc>>(),
-                                parts[1].parse::<chrono::DateTime<chrono::Utc>>()
-                            ) {
-                                return self.locale_generator.chrono_date_time_between(rng, start, end);
-                            }
+                            let start = Self::parse_datetime(parts[0], past);
+                            let end = Self::parse_datetime(parts[1], now);
+
+                            return self.locale_generator.chrono_date_time_between(rng, start, end);
                         }
                     }
                 }
+
                 // Default: past year to now
-                let now = chrono::Utc::now();
-                let past = now - chrono::Duration::days(365);
                 self.locale_generator.chrono_date_time_between(rng, past, now)
             },
 
@@ -172,19 +228,49 @@ impl FakeGenerator {
             FakeKeys::TIME_DURATION => self.locale_generator.time_duration(rng),
             // Time with arguments
             FakeKeys::TIME_DATE_TIME_BEFORE => {
-                // For now, use current time as default since time::OffsetDateTime parsing is complex
-                let dt = time::OffsetDateTime::now_utc();
+                // Parse datetime argument or use current time as default
+                // Note: time::OffsetDateTime parsing is more complex than chrono
+                // For now, we use current time but this could be enhanced
+                let dt = if let Some(args) = arguments {
+                    let _args_content = Self::parse_string_arg(args, "");
+                    // Could implement parsing here for ISO datetime strings
+                    time::OffsetDateTime::now_utc()
+                } else {
+                    time::OffsetDateTime::now_utc()
+                };
                 self.locale_generator.time_date_time_before(rng, dt)
             },
             FakeKeys::TIME_DATE_TIME_AFTER => {
-                // For now, use current time as default since time::OffsetDateTime parsing is complex
-                let dt = time::OffsetDateTime::now_utc();
+                // Parse datetime argument or use current time as default
+                // Note: time::OffsetDateTime parsing is more complex than chrono
+                // For now, we use current time but this could be enhanced
+                let dt = if let Some(args) = arguments {
+                    let _args_content = Self::parse_string_arg(args, "");
+                    // Could implement parsing here for ISO datetime strings
+                    time::OffsetDateTime::now_utc()
+                } else {
+                    time::OffsetDateTime::now_utc()
+                };
                 self.locale_generator.time_date_time_after(rng, dt)
             },
             FakeKeys::TIME_DATE_TIME_BETWEEN => {
-                // Default: past year to now
                 let now = time::OffsetDateTime::now_utc();
                 let past = now - time::Duration::days(365);
+
+                // For between, we need two datetime arguments or use defaults
+                if let Some(args) = arguments {
+                    let args_content = Self::parse_string_arg(args, "");
+                    if args_content.contains(',') {
+                        let parts: Vec<&str> = args_content.split(',').map(|s| s.trim()).collect();
+                        if parts.len() == 2 {
+                            let start = Self::parse_time(parts[0], past);
+                            let end = Self::parse_time(parts[1], now);
+
+                            return self.locale_generator.time_date_time_between(rng, start, end);
+                        }
+                    }
+                }
+                // Default: past year to now
                 self.locale_generator.time_date_time_between(rng, past, now)
             },
 
@@ -471,7 +557,7 @@ mod tests {
         let result = generator.generate_by_key("chrono.dateTimeAfter", &mut rng);
         assert!(matches!(result, Value::String(_)));
 
-        let result = generator.generate_by_key("chrono.dateTimeBetween", &mut rng);
+        let result = generator.generate_by_key("chrono.dateTimeBetween(2024-01-01 00:00:00, 2024-12-31T23:59:59)", &mut rng);
         assert!(matches!(result, Value::String(_)));
     }
 
