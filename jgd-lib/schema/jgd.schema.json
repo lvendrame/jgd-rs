@@ -1,5 +1,5 @@
 {
-  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://yourdomain.dev/jgd/schema.json",
   "title": "JGD (JSON Generator Definition)",
   "type": "object",
@@ -24,14 +24,12 @@
 
   "$defs": {
     "Field": {
-      "description": "A field specification",
+      "description": "A field specification. All strings are templates and may contain ${...} expressions for faker calls or field references.",
       "oneOf": [
-        { "$ref": "#/$defs/Faker" },
         { "$ref": "#/$defs/Object" },
         { "$ref": "#/$defs/Array" },
         { "$ref": "#/$defs/Number" },
         { "$ref": "#/$defs/Optional" },
-        { "$ref": "#/$defs/Template" },
         { "$ref": "#/$defs/Ref" },
         { "type": "string" },
         { "type": "integer" },
@@ -39,33 +37,6 @@
         { "type": "boolean" },
         { "type": "null" }
       ]
-    },
-
-    "Faker": {
-      "type": "object",
-      "required": ["faker"],
-      "properties": {
-        "faker": {
-          "type": "string",
-          "pattern": "^[a-z_]+(\\.[a-zA-Z0-9_]+)*$"
-        },
-        "locale": { "type": "string" },
-        "between": {
-          "type": "array",
-          "items": [{ "type": "string" }, { "type": "string" }],
-          "minItems": 2,
-          "maxItems": 2
-        },
-        "tz": { "type": "string" },
-        "words": {
-          "type": "array",
-          "items": [{ "type": "integer" }, { "type": "integer" }],
-          "minItems": 2,
-          "maxItems": 2
-        },
-        "count": { "type": "integer", "minimum": 0 }
-      },
-      "additionalProperties": true
     },
 
     "Object": {
@@ -132,14 +103,6 @@
             "prob": { "type": "number", "minimum": 0, "maximum": 1 }
           }
         }
-      }
-    },
-
-    "Template": {
-      "type": "object",
-      "required": ["template"],
-      "properties": {
-        "template": { "type": "string" }
       }
     },
 
