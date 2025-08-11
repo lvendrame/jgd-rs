@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use indexmap::IndexMap;
 use serde::Deserialize;
 use serde_json::Value;
 use crate::type_spec::{Count, Field, GetCount, JsonGenerator};
@@ -10,7 +10,7 @@ pub struct Entity {
     pub seed: Option<u64>,
     #[serde(default)]
     pub unique_by: Vec<String>,
-    pub fields: BTreeMap<String, Field>,
+    pub fields: IndexMap<String, Field>,
 }
 
 impl JsonGenerator for Entity {
@@ -40,7 +40,7 @@ impl JsonGenerator for Entity {
     }
 }
 
-impl JsonGenerator for BTreeMap<String, Entity> {
+impl JsonGenerator for IndexMap<String, Entity> {
     fn generate(&self, config: &mut super::GeneratorConfig) -> serde_json::Value {
 
         let mut map = serde_json::Map::new();

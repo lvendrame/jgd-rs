@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap, HashSet};
+use indexmap::IndexMap;
 use serde::Deserialize;
 use serde_json::Value;
 use crate::type_spec::{Count, Field, GetCount, JsonGenerator};
@@ -11,7 +11,7 @@ pub struct RootEntity {
     pub seed: Option<u64>,
     #[serde(default)]
     pub unique_by: Vec<String>,
-    pub fields: BTreeMap<String, Field>,
+    pub fields: IndexMap<String, Field>,
 }
 
 impl JsonGenerator for RootEntity {

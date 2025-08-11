@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use indexmap::IndexMap;
 use serde::Deserialize;
 use serde_json::Value;
 use crate::type_spec::{Entity, GeneratorConfig, JsonGenerator, RootEntity};
@@ -19,7 +19,7 @@ pub struct Jgd {
     #[serde(default = "default_locale")]
     pub default_locale: String,
     #[serde(default)]
-    pub entities: Option<BTreeMap<String, Entity>>, // collection mode
+    pub entities: Option<IndexMap<String, Entity>>, // collection mode
     #[serde(default)]
     pub root: Option<RootEntity>, // root mode
 }

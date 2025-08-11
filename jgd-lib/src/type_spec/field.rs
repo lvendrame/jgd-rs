@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use indexmap::IndexMap;
 use serde::Deserialize;
 use serde_json::Value;
 use crate::type_spec::{ArraySpec, GeneratorConfig, JsonGenerator, NumberSpec, OptionalSpec, ReplacerCollection};
@@ -7,7 +7,7 @@ use crate::type_spec::{ArraySpec, GeneratorConfig, JsonGenerator, NumberSpec, Op
 #[serde(untagged)]
 pub enum Field {
     Object {
-        object: BTreeMap<String, Field>
+        object: IndexMap<String, Field>
     },
     Array  {
         array: ArraySpec
@@ -58,7 +58,7 @@ impl JsonGenerator for Field {
     }
 }
 
-impl JsonGenerator for BTreeMap<String, Field> {
+impl JsonGenerator for IndexMap<String, Field> {
     fn generate(&self, config: &mut GeneratorConfig) -> Value {
        let mut map = serde_json::Map::new();
         for (key, field) in self {
