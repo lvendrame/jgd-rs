@@ -4,8 +4,8 @@
   "root": {
     "count": [2, 5],
     "fields": {
-      "city": { "faker": "address.city" },
-      "postal": { "faker": "address.zipCode" }
+      "city": "${address.cityName}",
+      "postal": "${address.zipCode}"
     }
   }
 }

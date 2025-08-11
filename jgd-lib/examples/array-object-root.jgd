@@ -4,8 +4,8 @@
   "root": {
     "count": 3,
     "fields": {
-      "id": { "faker": "uuid.v4" },
-      "title": { "faker": "lorem.sentence", "words": [3, 6] }
+      "id": "${uuid.v4}",
+      "title": "${lorem.sentence(3, 6)}"
     }
   }
 }

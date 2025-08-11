@@ -1,4 +1,8 @@
-pub struct FakeKeys;
+use std::collections::HashSet;
+
+pub struct FakeKeys {
+    pub sets: HashSet<&'static str>,
+}
 
 impl FakeKeys {
     pub const ADDRESS_CITY_PREFIX: &'static str = "address.cityPrefix";
@@ -112,4 +116,174 @@ impl FakeKeys {
     pub const FINANCE_ISIN: &'static str = "finance.isin";
     pub const ADMINISTRATIVE_HEALTH_INSURANCE_CODE: &'static str = "administrative.healthInsuranceCode";
     pub const AUTOMOTIVE_LICENCE_PLATE: &'static str = "automotive.licencePlate";
+
+    pub const ULID: &'static str = "ulid";
+    pub const UUID_V4: &'static str = "uuid.v4";
+
+    pub fn new() -> Self {
+        let mut sets = HashSet::new();
+
+        // Address constants
+        sets.insert(Self::ADDRESS_CITY_PREFIX);
+        sets.insert(Self::ADDRESS_CITY_SUFFIX);
+        sets.insert(Self::ADDRESS_CITY_NAME);
+        sets.insert(Self::ADDRESS_COUNTRY_NAME);
+        sets.insert(Self::ADDRESS_COUNTRY_CODE);
+        sets.insert(Self::ADDRESS_STREET_SUFFIX);
+        sets.insert(Self::ADDRESS_STREET_NAME);
+        sets.insert(Self::ADDRESS_TIME_ZONE);
+        sets.insert(Self::ADDRESS_STATE_NAME);
+        sets.insert(Self::ADDRESS_STATE_ABBR);
+        sets.insert(Self::ADDRESS_SECONDARY_ADDRESS_TYPE);
+        sets.insert(Self::ADDRESS_SECONDARY_ADDRESS);
+        sets.insert(Self::ADDRESS_ZIP_CODE);
+        sets.insert(Self::ADDRESS_POST_CODE);
+        sets.insert(Self::ADDRESS_BUILDING_NUMBER);
+        sets.insert(Self::ADDRESS_LATITUDE);
+        sets.insert(Self::ADDRESS_LONGITUDE);
+        sets.insert(Self::ADDRESS_GEOHASH);
+
+        // Barcode constants
+        sets.insert(Self::BARCODE_ISBN);
+        sets.insert(Self::BARCODE_ISBN10);
+        sets.insert(Self::BARCODE_ISBN13);
+
+        // Boolean constants
+        sets.insert(Self::BOOLEAN_BOOLEAN);
+
+        // Color constants
+        sets.insert(Self::COLOR_HEX_COLOR);
+        sets.insert(Self::COLOR_RGB_COLOR);
+        sets.insert(Self::COLOR_RGBA_COLOR);
+        sets.insert(Self::COLOR_HSL_COLOR);
+        sets.insert(Self::COLOR_HSLA_COLOR);
+        sets.insert(Self::COLOR_COLOR);
+
+        // Chrono constants
+        sets.insert(Self::CHRONO_TIME);
+        sets.insert(Self::CHRONO_DATE);
+        sets.insert(Self::CHRONO_DATE_TIME);
+        sets.insert(Self::CHRONO_DURATION);
+        sets.insert(Self::CHRONO_DATE_TIME_BEFORE);
+        sets.insert(Self::CHRONO_DATE_TIME_AFTER);
+        sets.insert(Self::CHRONO_DATE_TIME_BETWEEN);
+
+        // Time constants
+        sets.insert(Self::TIME_TIME);
+        sets.insert(Self::TIME_DATE);
+        sets.insert(Self::TIME_DATE_TIME);
+        sets.insert(Self::TIME_DURATION);
+        sets.insert(Self::TIME_DATE_TIME_BEFORE);
+        sets.insert(Self::TIME_DATE_TIME_AFTER);
+        sets.insert(Self::TIME_DATE_TIME_BETWEEN);
+
+        // Credit card constants
+        sets.insert(Self::CREDITCARD_CREDIT_CARD_NUMBER);
+
+        // Company constants
+        sets.insert(Self::COMPANY_COMPANY_SUFFIX);
+        sets.insert(Self::COMPANY_COMPANY_NAME);
+        sets.insert(Self::COMPANY_BUZZWORD);
+        sets.insert(Self::COMPANY_BUZZWORD_MIDDLE);
+        sets.insert(Self::COMPANY_BUZZWORD_TAIL);
+        sets.insert(Self::COMPANY_CATCH_PHRASE);
+        sets.insert(Self::COMPANY_BS_VERB);
+        sets.insert(Self::COMPANY_BS_ADJ);
+        sets.insert(Self::COMPANY_BS_NOUN);
+        sets.insert(Self::COMPANY_BS);
+        sets.insert(Self::COMPANY_PROFESSION);
+        sets.insert(Self::COMPANY_INDUSTRY);
+
+        // HTTP constants
+        sets.insert(Self::HTTP_RFC_STATUS_CODE);
+        sets.insert(Self::HTTP_VALID_STATUS_CODE);
+
+        // Internet constants
+        sets.insert(Self::INTERNET_FREE_EMAIL_PROVIDER);
+        sets.insert(Self::INTERNET_DOMAIN_SUFFIX);
+        sets.insert(Self::INTERNET_FREE_EMAIL);
+        sets.insert(Self::INTERNET_SAFE_EMAIL);
+        sets.insert(Self::INTERNET_USERNAME);
+        sets.insert(Self::INTERNET_PASSWORD);
+        sets.insert(Self::INTERNET_I_PV4);
+        sets.insert(Self::INTERNET_I_PV6);
+        sets.insert(Self::INTERNET_IP);
+        sets.insert(Self::INTERNET_MAC_ADDRESS);
+        sets.insert(Self::INTERNET_USER_AGENT);
+
+        // Job constants
+        sets.insert(Self::JOB_SENIORITY);
+        sets.insert(Self::JOB_FIELD);
+        sets.insert(Self::JOB_POSITION);
+        sets.insert(Self::JOB_TITLE);
+
+        // Lorem constants
+        sets.insert(Self::LOREM_WORD);
+        sets.insert(Self::LOREM_WORDS);
+        sets.insert(Self::LOREM_SENTENCE);
+        sets.insert(Self::LOREM_SENTENCES);
+        sets.insert(Self::LOREM_PARAGRAPH);
+        sets.insert(Self::LOREM_PARAGRAPHS);
+
+        // Markdown constants
+        sets.insert(Self::MARKDOWN_ITALIC_WORD);
+        sets.insert(Self::MARKDOWN_BOLD_WORD);
+        sets.insert(Self::MARKDOWN_LINK);
+        sets.insert(Self::MARKDOWN_BULLET_POINTS);
+        sets.insert(Self::MARKDOWN_LIST_ITEMS);
+        sets.insert(Self::MARKDOWN_BLOCK_QUOTE_SINGLE_LINE);
+        sets.insert(Self::MARKDOWN_BLOCK_QUOTE_MULTI_LINE);
+        sets.insert(Self::MARKDOWN_CODE);
+
+        // Name constants
+        sets.insert(Self::NAME_FIRST_NAME);
+        sets.insert(Self::NAME_LAST_NAME);
+        sets.insert(Self::NAME_TITLE);
+        sets.insert(Self::NAME_SUFFIX);
+        sets.insert(Self::NAME_NAME);
+        sets.insert(Self::NAME_NAME_WITH_TITLE);
+
+        // Number constants
+        sets.insert(Self::NUMBER_DIGIT);
+        sets.insert(Self::NUMBER_NUMBER_WITH_FORMAT);
+
+        // Phone number constants
+        sets.insert(Self::PHONE_NUMBER_PHONE_NUMBER);
+        sets.insert(Self::PHONE_NUMBER_CELL_NUMBER);
+
+        // Filesystem constants
+        sets.insert(Self::FILESYSTEM_FILE_PATH);
+        sets.insert(Self::FILESYSTEM_FILE_NAME);
+        sets.insert(Self::FILESYSTEM_FILE_EXTENSION);
+        sets.insert(Self::FILESYSTEM_DIR_PATH);
+        sets.insert(Self::FILESYSTEM_MIME_TYPE);
+        sets.insert(Self::FILESYSTEM_SEMVER);
+        sets.insert(Self::FILESYSTEM_SEMVER_STABLE);
+        sets.insert(Self::FILESYSTEM_SEMVER_UNSTABLE);
+
+        // Currency constants
+        sets.insert(Self::CURRENCY_CURRENCY_CODE);
+        sets.insert(Self::CURRENCY_CURRENCY_NAME);
+        sets.insert(Self::CURRENCY_CURRENCY_SYMBOL);
+
+        // Finance constants
+        sets.insert(Self::FINANCE_BIC);
+        sets.insert(Self::FINANCE_ISIN);
+
+        // Administrative constants
+        sets.insert(Self::ADMINISTRATIVE_HEALTH_INSURANCE_CODE);
+
+        // Automotive constants
+        sets.insert(Self::AUTOMOTIVE_LICENCE_PLATE);
+
+        // IDs
+        sets.insert(Self::ULID);
+        sets.insert(Self::UUID_V4);
+
+        Self { sets }
+    }
+
+    pub fn contains_key(&self, key: &str) -> bool {
+        self.sets.contains(key)
+    }
 }

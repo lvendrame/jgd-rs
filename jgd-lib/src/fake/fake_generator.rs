@@ -433,6 +433,16 @@ impl FakeGenerator {
             // Automotive
             FakeKeys::AUTOMOTIVE_LICENCE_PLATE => self.locale_generator.automotive_licence_plate(rng),
 
+            //IDs
+            FakeKeys::UUID_V4 => {
+                let id = uuid::Uuid::new_v4();
+                Value::String(id.to_string())
+            }
+            FakeKeys::ULID => {
+                let id = ulid::Ulid::new();
+                Value::String(id.to_string())
+            }
+
             _ => Value::String(pattern.to_string()),
         }
     }

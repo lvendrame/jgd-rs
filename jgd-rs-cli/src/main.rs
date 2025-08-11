@@ -94,8 +94,25 @@ struct NumberSpec { min: f64, max: f64, #[serde(default)] integer: bool }
 struct OptionalSpec { of: Box<Field>, #[serde(default = "default_prob")] prob: f64 }
 fn default_prob() -> f64 { 0.5 }
 
+fn open_and_print(path: &str) {
+    let value = jgd_lib::from_file(path);
+    let serialized = value.to_string();
+    println!("\nFile: {}", path);
+    println!("---------------------------------------------------\n");
+    println!("serialized = {}", serialized);
+}
+
 fn main() -> Result<()> {
+    open_and_print("/Users/lvendrame/projects/pocs/jgd-rs/jgd-lib/examples/single-object-root.jgd");
+    open_and_print("/Users/lvendrame/projects/pocs/jgd-rs/jgd-lib/examples/array-object-root.jgd");
+    open_and_print("/Users/lvendrame/projects/pocs/jgd-rs/jgd-lib/examples/ranged-array-object-root.jgd");
+    //open_and_print("/Users/lvendrame/projects/pocs/jgd-rs/jgd-lib/examples/user-post-entities.jgd");
+    return Ok(());
+
     let cli = Cli::parse();
+
+    //jgd_lib::from_file(&cli.input);
+
     let raw = fs::read_to_string(&cli.input)?;
     let jgd: Jgd = serde_json::from_str(&raw)?;
 
