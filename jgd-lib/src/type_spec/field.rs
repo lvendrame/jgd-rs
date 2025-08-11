@@ -1,5 +1,4 @@
 use std::collections::BTreeMap;
-use rand::Rng;
 use serde::Deserialize;
 use serde_json::Value;
 use crate::type_spec::{ArraySpec, GeneratorConfig, JsonGenerator, NumberSpec, OptionalSpec, ReplacerCollection};
@@ -32,22 +31,13 @@ pub enum Field {
 impl Field {
 
     fn generate_for_ref(&self, r#ref: &str, config: &mut GeneratorConfig) -> Value {
-        // form: entity.path.to.field
-        let mut parts = r#ref.split('.');
-        let ent = parts.next().unwrap();
-        let keypath: Vec<&str> = parts.collect();
-        let pool = config.store.get(ent).unwrap();//.ok_or_else(|| anyhow!("unknown ref entity {ent}"))?;
-        if pool.is_empty() {
-            //return Err(anyhow!("ref entity {ent} is empty"));
-            return Value::Null;
-        }
-        let idx = config.rng.random_range(0..pool.len());
-        let mut v = pool[idx].clone();
-        for k in keypath {
-            v = v.get(k).cloned().unwrap();
+        let value = config.get_value_from_path(r#ref.to_string());
+
+        if let Some(value) = value {
+            return value.clone();
         }
 
-        v
+        Value::String(format!("The path {} is not found", r#ref))
     }
 }
 

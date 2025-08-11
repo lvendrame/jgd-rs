@@ -21,12 +21,16 @@ pub struct Jgd {
     #[serde(default)]
     pub entities: Option<BTreeMap<String, Entity>>, // collection mode
     #[serde(default)]
-    pub root: Option<RootEntity>,                    // root mode
+    pub root: Option<RootEntity>, // root mode
 }
 
 impl Jgd {
+    pub fn create_config(&self) -> GeneratorConfig {
+        GeneratorConfig::new(&self.default_locale, self.seed)
+    }
+
     pub fn generate(&self) -> Value {
-        let mut config = GeneratorConfig::new(&self.default_locale, self.seed);
+        let mut config = self.create_config();
 
         if let Some(root) = &self.root {
             return root.generate(&mut config);

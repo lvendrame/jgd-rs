@@ -106,7 +106,7 @@ fn main() -> Result<()> {
     open_and_print("/Users/lvendrame/projects/pocs/jgd-rs/jgd-lib/examples/single-object-root.jgd");
     open_and_print("/Users/lvendrame/projects/pocs/jgd-rs/jgd-lib/examples/array-object-root.jgd");
     open_and_print("/Users/lvendrame/projects/pocs/jgd-rs/jgd-lib/examples/ranged-array-object-root.jgd");
-    //open_and_print("/Users/lvendrame/projects/pocs/jgd-rs/jgd-lib/examples/user-post-entities.jgd");
+    open_and_print("/Users/lvendrame/projects/pocs/jgd-rs/jgd-lib/examples/user-post-entities.jgd");
     return Ok(());
 
     let cli = Cli::parse();

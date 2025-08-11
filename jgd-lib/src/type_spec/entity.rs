@@ -32,6 +32,7 @@ impl JsonGenerator for Entity {
             //         set.insert(fp);
             //     }
             // }
+
             items.push(obj);
         }
 
@@ -44,7 +45,10 @@ impl JsonGenerator for BTreeMap<String, Entity> {
 
         let mut map = serde_json::Map::new();
         for (name, entity) in self {
-            map.insert(name.clone(), entity.generate(config));
+            let generated = entity.generate(config);
+            map.insert(name.clone(), generated.clone());
+
+            config.gen_value.insert(name.clone(), generated);
         }
 
         Value::Object(map)

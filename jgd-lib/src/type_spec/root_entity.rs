@@ -32,6 +32,9 @@ impl JsonGenerator for RootEntity {
             //         set.insert(fp);
             //     }
             // }
+            if self.count.is_none() {
+                return obj;
+            }
             items.push(obj);
         }
 
