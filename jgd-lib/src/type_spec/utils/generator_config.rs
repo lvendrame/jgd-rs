@@ -17,7 +17,7 @@ impl GeneratorConfig {
     pub fn new(locale: &str, seed: Option<u64>) -> Self {
         let fake_keys = FakeKeys::new();
         let fake_generator = FakeGenerator::new(locale);
-        let rng = StdRng::seed_from_u64(seed.unwrap_or(0));
+        let rng = StdRng::seed_from_u64(seed.unwrap_or(rand::random()));
         let store = HashMap::new();
         let locale = locale.to_string();
 

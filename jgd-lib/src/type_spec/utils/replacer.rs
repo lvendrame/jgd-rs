@@ -46,9 +46,8 @@ pub struct ReplacerCollection {
 impl ReplacerCollection {
     pub fn new(value: String) -> Self {
         let collection: Vec<Replacer> = RE_FAKES
-            .captures(&value)
-            .iter()
-            .map(|captures| Replacer::new(captures))
+            .captures_iter(&value)
+            .map(|captures| Replacer::new(&captures))
             .collect();
 
         let full_replace = if let Some(replacer) = collection.first() {
@@ -82,13 +81,18 @@ impl ReplacerCollection {
             return Some(Value::String(value));
         }
 
-        for replacer in &self.collection {
+        for replacer in self.collection.iter().rev() {
             if config.fake_keys.contains_key(&replacer.key) {
                 let new_value = config.fake_generator.generate_by_key(&replacer.key, &mut config.rng);
-                value.replace_range(replacer.start..=replacer.end, &new_value.to_string());
+                let new_value = if let Value::String(value) = new_value {
+                    value
+                } else {
+                    new_value.to_string()
+                };
+                value.replace_range(replacer.start..replacer.end, &new_value);
             }
         }
-        return Some(Value::String(value));
 
+        Some(Value::String(value))
     }
 }

@@ -96,7 +96,7 @@ fn default_prob() -> f64 { 0.5 }
 
 fn open_and_print(path: &str) {
     let value = jgd_lib::from_file(path);
-    let serialized = value.to_string();
+    let serialized = serde_json::to_string_pretty(&value).unwrap();
     println!("\nFile: {}", path);
     println!("---------------------------------------------------\n");
     println!("serialized = {}", serialized);
