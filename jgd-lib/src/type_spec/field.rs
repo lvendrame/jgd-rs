@@ -6,9 +6,6 @@ use crate::type_spec::{ArraySpec, Entity, GeneratorConfig, JsonGenerator, Number
 #[derive(Debug, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum Field {
-    // Object {
-    //     object: IndexMap<String, Field>
-    // },
     Array  {
         array: ArraySpec
     },

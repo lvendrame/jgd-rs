@@ -20,6 +20,6 @@ pub use utils::*;
 use serde_json::Value;
 
 
-trait JsonGenerator {
+pub trait JsonGenerator {
     fn generate(&self, config: &mut GeneratorConfig) -> Value;
 }
