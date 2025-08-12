@@ -128,7 +128,7 @@ pub struct ArraySpec {
     /// # Supported Types
     ///
     /// Any valid `Field` type can be used as the element specification:
-    /// - `Field::String` for text arrays
+    /// - `Field::Str` for text arrays
     /// - `Field::Number` for numeric arrays
     /// - `Field::Entity` for object arrays
     /// - `Field::Array` for nested array structures

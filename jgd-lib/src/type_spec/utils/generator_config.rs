@@ -26,7 +26,7 @@ use crate::fake::{FakeGenerator, FakeKeys};
 /// # Examples
 ///
 /// ```rust,ignore
-/// use jgd_lib::{GeneratorConfig, NumberSpec, JsonGenerator};
+/// use jgd_lib::{GeneratorConfig, NumberSpec};
 ///
 /// // Create config with English locale and deterministic seed
 /// let mut config = GeneratorConfig::new("EN", Some(42));
