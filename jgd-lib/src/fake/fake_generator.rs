@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use rand::rngs::StdRng;
 use regex::Regex;
 use serde_json::Value;
@@ -73,7 +73,7 @@ impl FakeGenerator {
         default_value
     }
 
-        // Helper function to parse time argument like "23:56:04"
+    // Helper function to parse time argument like "23:56:04"
     pub fn parse_time(args: &str, default_value: time::OffsetDateTime) -> time::OffsetDateTime {
         let args_content = args
             .strip_prefix('(').and_then(|s| s.strip_suffix(')'))
@@ -106,24 +106,45 @@ impl FakeGenerator {
 
         let args_content = args_content.trim();
         if !args_content.is_empty() {
-
             if let Ok(dt) = args_content.parse::<chrono::DateTime<chrono::Utc>>() {
                 return dt;
             }
 
-            if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(args_content, "%Y-%m-%d %H:%M:%S") {
-                return dt.and_utc();
+            // 1. Direct ISO 8601 UTC parse
+            if let Ok(dt) = args_content.parse::<DateTime<Utc>>() {
+                return dt;
             }
 
-            if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(args_content, "%Y-%m-%dT%H:%M:%S") {
-                return dt.and_utc();
+            // 2. RFC3339 (handles Z, offsets, fractional seconds)
+            if let Ok(dt) = DateTime::parse_from_rfc3339(args_content) {
+                return dt.with_timezone(&Utc);
             }
 
-            if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(args_content, "%Y-%m-%dT%H:%M:%S%:z") {
-                return dt.and_utc();
+            // 3. Try common patterns with timezone
+            let tz_formats = [
+                "%Y-%m-%dT%H:%M:%S%:z",
+                "%Y-%m-%dT%H:%M:%SZ",
+                "%Y-%m-%dT%H:%M:%S%.3f%:z",
+                "%Y-%m-%dT%H:%M:%S%.3fZ",
+            ];
+            for fmt in tz_formats {
+                if let Ok(dt) = DateTime::parse_from_str(args_content, fmt) {
+                    return dt.with_timezone(&Utc);
+                }
             }
 
-            return default_value;
+            // 4. Try naive formats and assume UTC
+            let naive_formats = [
+                "%Y-%m-%d %H:%M:%S",
+                "%Y-%m-%dT%H:%M:%S",
+                "%Y-%m-%d %H:%M:%S%.3f",
+                "%Y-%m-%dT%H:%M:%S%.3f",
+            ];
+            for fmt in naive_formats {
+                if let Ok(ndt) = NaiveDateTime::parse_from_str(args_content, fmt) {
+                    return ndt.and_utc();
+                }
+            }
         }
 
         default_value
