@@ -3,9 +3,9 @@ use serde::Deserialize;
 use serde_json::Value;
 use crate::type_spec::{Count, Field, GetCount, JsonGenerator};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Entity {
-    pub count: Count,
+    pub count: Option<Count>,
     #[serde(default)]
     pub seed: Option<u64>,
     #[serde(default)]
@@ -32,6 +32,10 @@ impl JsonGenerator for Entity {
             //         set.insert(fp);
             //     }
             // }
+
+            if self.count.is_none() {
+                return obj;
+            }
 
             items.push(obj);
         }

@@ -1,7 +1,9 @@
+use std::{fs, path::PathBuf};
+
 use indexmap::IndexMap;
 use serde::Deserialize;
 use serde_json::Value;
-use crate::type_spec::{Entity, GeneratorConfig, JsonGenerator, RootEntity};
+use crate::type_spec::{Entity, GeneratorConfig, JsonGenerator};
 
 fn default_locale() -> String {
     "EN".to_string()
@@ -21,10 +23,16 @@ pub struct Jgd {
     #[serde(default)]
     pub entities: Option<IndexMap<String, Entity>>, // collection mode
     #[serde(default)]
-    pub root: Option<RootEntity>, // root mode
+    pub root: Option<Entity>, // root mode
 }
 
 impl Jgd {
+    pub fn from_file(path: &PathBuf) -> Self {
+        let jgd_string = fs::read_to_string(path);
+
+        Self::from(jgd_string.unwrap())
+    }
+
     pub fn create_config(&self) -> GeneratorConfig {
         GeneratorConfig::new(&self.default_locale, self.seed)
     }
@@ -41,5 +49,23 @@ impl Jgd {
         }
 
         Value::Null
+    }
+}
+
+impl From<&str> for Jgd {
+    fn from(value: &str) -> Self {
+        serde_json::from_str(value).unwrap()
+    }
+}
+
+impl From<String> for Jgd {
+    fn from(value: String) -> Self {
+        serde_json::from_str(&value).unwrap()
+    }
+}
+
+impl From<Value> for Jgd {
+    fn from(value: Value) -> Self {
+        serde_json::from_value(value).unwrap()
     }
 }

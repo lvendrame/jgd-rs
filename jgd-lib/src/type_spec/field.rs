@@ -1,17 +1,18 @@
 use indexmap::IndexMap;
 use serde::Deserialize;
 use serde_json::Value;
-use crate::type_spec::{ArraySpec, GeneratorConfig, JsonGenerator, NumberSpec, OptionalSpec, ReplacerCollection};
+use crate::type_spec::{ArraySpec, Entity, GeneratorConfig, JsonGenerator, NumberSpec, OptionalSpec, ReplacerCollection};
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum Field {
-    Object {
-        object: IndexMap<String, Field>
-    },
+    // Object {
+    //     object: IndexMap<String, Field>
+    // },
     Array  {
         array: ArraySpec
     },
+    Entity(Entity),
     Number {
         number: NumberSpec
     },
@@ -44,8 +45,9 @@ impl Field {
 impl JsonGenerator for Field {
     fn generate(&self, config: &mut GeneratorConfig) -> serde_json::Value {
         match self {
-            Field::Object { object } => object.generate(config),
+            // Field::Object { object } => object.generate(config),
             Field::Array { array } => array.generate(config),
+            Field::Entity(entity) => entity.generate(config),
             Field::Number { number } => number.generate(config),
             Field::Optional { optional } => optional.generate(config),
             Field::Ref { r#ref } => self.generate_for_ref(r#ref, config),

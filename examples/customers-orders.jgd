@@ -15,7 +15,7 @@
         "phone": "${phone_number.phoneNumber}",
         "joinedAt": "${chrono.dateTimeBefore(2025-01-01T00:00:00Z)}",
         "shippingAddress": {
-          "object": {
+          "fields": {
             "street": "${address.streetName}",
             "building": "${address.buildingNumber}",
             "city": "${address.cityName}",
@@ -51,7 +51,7 @@
         "orderStatus": "${http.rfcStatusCode}",
         "items": {
           "array": {
-            "length": [1, 5],
+            "count": [1, 5],
             "of": { "ref": "products.productId" }
           }
         },
@@ -59,7 +59,7 @@
           "optional": {
             "prob": 0.95,
             "of": {
-              "object": {
+              "fields": {
                 "card": "${creditcard.creditCardNumber}",
                 "bic": "${finance.bic}"
               }

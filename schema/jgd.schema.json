@@ -14,7 +14,7 @@
       "additionalProperties": { "$ref": "#/$defs/Entity" }
     },
 
-    "root": { "$ref": "#/$defs/RootEntity" }
+    "root": { "$ref": "#/$defs/Entity" }
   },
 
   "oneOf": [
@@ -26,7 +26,7 @@
     "Field": {
       "description": "A field specification. All strings are templates and may contain ${...} expressions for faker calls or field references.",
       "oneOf": [
-        { "$ref": "#/$defs/Object" },
+        { "$ref": "#/$defs/Entity" },
         { "$ref": "#/$defs/Array" },
         { "$ref": "#/$defs/Number" },
         { "$ref": "#/$defs/Optional" },
@@ -58,17 +58,7 @@
           "type": "object",
           "required": ["of"],
           "properties": {
-            "length": {
-              "oneOf": [
-                { "type": "integer", "minimum": 0 },
-                {
-                  "type": "array",
-                  "items": [{ "type": "integer" }, { "type": "integer" }],
-                  "minItems": 2,
-                  "maxItems": 2
-                }
-              ]
-            },
+            "count": { "$ref": "#/$defs/Count" },
             "of": { "$ref": "#/$defs/Field" }
           }
         }
@@ -117,7 +107,7 @@
       }
     },
 
-    "EntityCommon": {
+    "Entity": {
       "type": "object",
       "required": ["fields"],
       "properties": {
@@ -127,28 +117,21 @@
           "type": "object",
           "additionalProperties": { "$ref": "#/$defs/Field" }
         },
-        "count": {
-          "oneOf": [
-            { "type": "integer", "minimum": 0 },
-            {
-              "type": "array",
-              "items": [{ "type": "integer" }, { "type": "integer" }],
-              "minItems": 2,
-              "maxItems": 2
-            }
-          ]
-        }
+        "count": { "$ref": "#/$defs/Count" }
       }
     },
 
-    "Entity": {
-      "allOf": [{ "$ref": "#/$defs/EntityCommon" }, { "required": ["count"] }]
-    },
-
-    "RootEntity": {
-      "allOf": [{ "$ref": "#/$defs/EntityCommon" }]
+    "Count": {
+      "oneOf": [
+        { "type": "integer", "minimum": 0 },
+        {
+          "type": "array",
+          "items": [{ "type": "integer" }, { "type": "integer" }],
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
     }
   },
-
   "additionalProperties": false
 }
