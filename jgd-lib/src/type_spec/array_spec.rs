@@ -1,4 +1,3 @@
-use rand::Rng;
 use serde::Deserialize;
 use serde_json::Value;
 use crate::type_spec::{len::GetLength, Field, JsonGenerator, Len};

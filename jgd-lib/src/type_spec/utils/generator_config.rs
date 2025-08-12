@@ -1,11 +1,10 @@
-use std::collections::HashMap;
-
 use rand::{random_range, rngs::StdRng, SeedableRng};
 use serde_json::Value;
 
 use crate::fake::{FakeGenerator, FakeKeys};
 
 pub struct GeneratorConfig {
+    #[allow(dead_code)]
     pub locale: String,
     pub fake_keys: FakeKeys,
     pub fake_generator: FakeGenerator,

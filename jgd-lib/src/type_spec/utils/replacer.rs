@@ -14,6 +14,7 @@ pub struct Replacer {
     pub length: usize,
     pub key: String,
     pub pattern: String,
+    #[allow(dead_code)]
     pub tag: String,
 }
 
@@ -100,24 +101,12 @@ impl ReplacerCollection {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{fake::{FakeGenerator, FakeKeys}, type_spec::GeneratorConfig};
+    use crate::{type_spec::GeneratorConfig};
     use rand::rngs::StdRng;
     use rand::SeedableRng;
 
     fn create_test_config() -> GeneratorConfig {
-        let fake_keys = FakeKeys::new();
-        let fake_generator = FakeGenerator::new("EN");
-        let rng = StdRng::seed_from_u64(42);
-        let locale = "EN".to_string();
-        let gen_value = serde_json::Map::new();
-
-        GeneratorConfig {
-            locale,
-            fake_keys,
-            fake_generator,
-            rng,
-            gen_value,
-        }
+        GeneratorConfig::new("EN", None)
     }
 
     #[test]
