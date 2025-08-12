@@ -5,20 +5,129 @@ use serde_json::Value;
 
 use crate::type_spec::GeneratorConfig;
 
+/// Global regex pattern for matching JGD fake data placeholders.
+///
+/// This regex matches patterns in the format `${key}` or `${key(arguments)}` where:
+/// - `key` can contain dots for nested paths (e.g., `name.firstName`)
+/// - `arguments` are optional and enclosed in parentheses
+///
+/// Examples of matched patterns:
+/// - `${name.firstName}`
+/// - `${address.cityName}`
+/// - `${lorem.words(5)}`
+/// - `${number.integer(1..100)}`
 static RE_FAKES: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(\$\{(.+?)(\(.+?\))?\})").unwrap());
 
+/// Represents a single placeholder replacement within a JGD template string.
+///
+/// A `Replacer` contains information about a placeholder that was found in a template
+/// string, including its position, the key to generate data for, and any arguments
+/// that should be passed to the fake data generator.
+///
+/// # JGD Template Placeholders
+///
+/// JGD templates use the syntax `${key}` or `${key(arguments)}` to specify where
+/// fake data should be inserted. The `Replacer` struct captures all the metadata
+/// needed to perform the replacement.
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// use jgd_lib::Replacer;
+/// use regex::Regex;
+///
+/// let regex = Regex::new(r"(\$\{(.+?)(\(.+?\))?\})").unwrap();
+/// let text = "Hello ${name.firstName}!";
+/// let captures = regex.captures(text).unwrap();
+/// let replacer = Replacer::new(&captures);
+///
+/// assert_eq!(replacer.key, "name.firstName");
+/// assert_eq!(replacer.pattern, "name.firstName");
+/// assert_eq!(replacer.start, 6);
+/// assert_eq!(replacer.end, 23);
+/// ```
 #[derive(Debug, Clone)]
 pub struct Replacer {
+    /// The starting byte position of the placeholder in the original string.
+    ///
+    /// This marks where the placeholder begins, including the `${` prefix.
+    /// Used for string replacement operations to know where to start replacing.
     pub start: usize,
+
+    /// The ending byte position of the placeholder in the original string.
+    ///
+    /// This marks where the placeholder ends, including the `}` suffix.
+    /// Used for string replacement operations to know where to stop replacing.
     pub end: usize,
+
+    /// The total length of the placeholder in bytes.
+    ///
+    /// This is equivalent to `end - start` and represents the full length
+    /// of the placeholder including `${` prefix and `}` suffix.
     pub length: usize,
+
+    /// The key portion of the placeholder, used to identify the data generator.
+    ///
+    /// This is the part between `${` and `}` (or `(` if arguments are present).
+    /// Examples: `name.firstName`, `address.cityName`, `lorem.words`
+    ///
+    /// The key is used to look up the appropriate fake data generator in
+    /// the `FakeKeys` collection within `GeneratorConfig`.
     pub key: String,
+
+    /// The complete pattern including key and arguments.
+    ///
+    /// This is the full pattern that should be passed to the fake data generator,
+    /// including any arguments. Examples:
+    /// - `name.firstName` (no arguments)
+    /// - `lorem.words(5)` (with arguments)
+    /// - `number.integer(1..100)` (with range arguments)
     pub pattern: String,
+
+    /// The complete original placeholder tag from the template.
+    ///
+    /// This is the full matched text including `${` and `}` delimiters.
+    /// Currently marked as `dead_code` but preserved for debugging purposes.
+    /// Examples: `${name.firstName}`, `${lorem.words(5)}`
     #[allow(dead_code)]
     pub tag: String,
 }
 
 impl Replacer {
+    /// Creates a new `Replacer` from regex capture groups.
+    ///
+    /// This constructor parses a regex capture result to extract all the metadata
+    /// needed for placeholder replacement. It handles both simple placeholders
+    /// like `${key}` and complex ones with arguments like `${key(args)}`.
+    ///
+    /// # Arguments
+    ///
+    /// * `captures` - Regex capture groups from matching the placeholder pattern
+    ///
+    /// # Returns
+    ///
+    /// A new `Replacer` instance with all metadata extracted from the capture.
+    ///
+    /// # Capture Group Structure
+    ///
+    /// The regex captures are expected to have:
+    /// - Group 1: Full match including `${` and `}`
+    /// - Group 2: The key portion (before any parentheses)
+    /// - Group 3: Optional arguments portion (including parentheses)
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use regex::Regex;
+    /// use jgd_lib::Replacer;
+    ///
+    /// let regex = Regex::new(r"(\$\{(.+?)(\(.+?\))?\})").unwrap();
+    /// let captures = regex.captures("${name.firstName}").unwrap();
+    /// let replacer = Replacer::new(&captures);
+    ///
+    /// assert_eq!(replacer.key, "name.firstName");
+    /// assert_eq!(replacer.pattern, "name.firstName");
+    /// ```
     fn new(captures: &regex::Captures<'_>) -> Self {
         let tag = captures.get(1).unwrap();
 
@@ -38,13 +147,107 @@ impl Replacer {
     }
 }
 
+/// A collection of placeholders found in a JGD template string.
+///
+/// `ReplacerCollection` analyzes a template string to find all placeholder patterns
+/// and provides functionality to replace them with generated fake data. It handles
+/// both full replacement (when the entire string is a single placeholder) and
+/// partial replacement (when placeholders are embedded within other text).
+///
+/// # Usage in JGD Templates
+///
+/// JGD templates can contain multiple placeholders that need to be replaced with
+/// generated data. This struct manages the entire replacement process, maintaining
+/// the order and position of placeholders for correct string manipulation.
+///
+/// # Replacement Modes
+///
+/// - **Full Replacement**: When the entire string is a single placeholder (e.g., `"${name.firstName}"`)
+///   - Returns the generated value directly (may be any JSON type)
+///   - More efficient as it avoids string concatenation
+///
+/// - **Partial Replacement**: When placeholders are mixed with literal text (e.g., `"Hello ${name.firstName}!"`)
+///   - Always returns a string with placeholders substituted
+///   - Processes replacements in reverse order to maintain correct positions
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// use jgd_lib::{ReplacerCollection, GeneratorConfig};
+///
+/// let mut config = GeneratorConfig::new("EN", Some(42));
+///
+/// // Full replacement
+/// let collection = ReplacerCollection::new("${name.firstName}".to_string());
+/// let result = collection.replace(&mut config);
+///
+/// // Partial replacement
+/// let collection = ReplacerCollection::new("Hello ${name.firstName}!".to_string());
+/// let result = collection.replace(&mut config);
+/// ```
 pub struct ReplacerCollection {
+    /// The original template string containing placeholders.
+    ///
+    /// This is preserved for reference and used as the base for replacement
+    /// operations. Contains the literal text with `${...}` placeholders.
     pub value: String,
+
+    /// Vector of all placeholders found in the template string.
+    ///
+    /// Each `Replacer` contains metadata about a placeholder's position and
+    /// content. The collection maintains the order they appear in the string.
     pub collection: Vec<Replacer>,
+
+    /// Whether the entire string should be replaced with a single generated value.
+    ///
+    /// Set to `true` when:
+    /// - The string contains exactly one placeholder
+    /// - The placeholder spans the entire string (no additional text)
+    ///
+    /// When `true`, replacement can return any JSON type directly.
+    /// When `false`, replacement always returns a string with substitutions.
     pub full_replace: bool,
 }
 
 impl ReplacerCollection {
+    /// Creates a new `ReplacerCollection` by analyzing a template string.
+    ///
+    /// This constructor scans the input string for placeholder patterns using
+    /// regex matching and creates `Replacer` instances for each found placeholder.
+    /// It also determines whether full replacement is possible.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - The template string to analyze for placeholders
+    ///
+    /// # Returns
+    ///
+    /// A new `ReplacerCollection` with all placeholders identified and metadata populated.
+    ///
+    /// # Full Replacement Detection
+    ///
+    /// Full replacement is enabled when:
+    /// - Exactly one placeholder is found
+    /// - The placeholder length equals the total string length
+    /// - No literal text exists outside the placeholder
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use jgd_lib::ReplacerCollection;
+    ///
+    /// // Full replacement case
+    /// let collection = ReplacerCollection::new("${name.firstName}".to_string());
+    /// assert!(collection.full_replace);
+    ///
+    /// // Partial replacement case
+    /// let collection = ReplacerCollection::new("Hello ${name.firstName}!".to_string());
+    /// assert!(!collection.full_replace);
+    ///
+    /// // No replacement case
+    /// let collection = ReplacerCollection::new("Hello world!".to_string());
+    /// assert!(collection.is_empty());
+    /// ```
     pub fn new(value: String) -> Self {
         let collection: Vec<Replacer> = RE_FAKES
             .captures_iter(&value)
@@ -64,14 +267,109 @@ impl ReplacerCollection {
         }
     }
 
+    /// Checks if the collection contains any placeholders.
+    ///
+    /// # Returns
+    ///
+    /// `true` if no placeholders were found in the template string, `false` otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use jgd_lib::ReplacerCollection;
+    ///
+    /// let empty = ReplacerCollection::new("Hello world!".to_string());
+    /// assert!(empty.is_empty());
+    ///
+    /// let not_empty = ReplacerCollection::new("Hello ${name.firstName}!".to_string());
+    /// assert!(!not_empty.is_empty());
+    /// ```
     pub fn is_empty(&self) -> bool {
         self.collection.is_empty()
     }
 
+    /// Gets the first (and only) replacer for full replacement scenarios.
+    ///
+    /// This method should only be called when `full_replace` is `true`,
+    /// indicating that the collection contains exactly one replacer that
+    /// spans the entire string.
+    ///
+    /// # Returns
+    ///
+    /// A reference to the first `Replacer` in the collection.
+    ///
+    /// # Panics
+    ///
+    /// Panics if called when the collection is empty. This should only be
+    /// called after verifying that `full_replace` is `true`.
+    ///
+    /// # Usage
+    ///
+    /// This is an internal method used by `replace()` when performing full
+    /// replacement operations. It's not intended for external use.
     fn get_full_replacer(&self) -> &Replacer {
         self.collection.first().unwrap()
     }
 
+    /// Performs placeholder replacement using the provided generator configuration.
+    ///
+    /// This method replaces all placeholders in the template string with generated
+    /// fake data. The replacement behavior depends on whether full or partial
+    /// replacement is needed.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - Mutable reference to the generator configuration containing
+    ///   fake data generators and keys
+    ///
+    /// # Returns
+    ///
+    /// `Some(Value)` containing the result of replacement, or `None` if replacement fails.
+    ///
+    /// # Replacement Logic
+    ///
+    /// ## Full Replacement
+    /// When `full_replace` is `true`:
+    /// - Uses the complete pattern (including arguments) for generation
+    /// - Returns the generated value directly (any JSON type)
+    /// - Falls back to original string if key is not found
+    ///
+    /// ## Partial Replacement
+    /// When `full_replace` is `false`:
+    /// - Processes replacers in reverse order to maintain string positions
+    /// - Uses only the key portion (without arguments) for generation
+    /// - Converts all generated values to strings for substitution
+    /// - Skips invalid keys, leaving their placeholders unchanged
+    /// - Always returns a `Value::String`
+    ///
+    /// # Key Validation
+    ///
+    /// Only placeholders with keys present in `config.fake_keys` are replaced.
+    /// Invalid keys are left as-is in the output string.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use jgd_lib::{ReplacerCollection, GeneratorConfig};
+    ///
+    /// let mut config = GeneratorConfig::new("EN", Some(42));
+    ///
+    /// // Full replacement - returns generated value directly
+    /// let collection = ReplacerCollection::new("${name.firstName}".to_string());
+    /// let result = collection.replace(&mut config);
+    /// // result might be Value::String("John")
+    ///
+    /// // Partial replacement - returns string with substitutions
+    /// let collection = ReplacerCollection::new("Hello ${name.firstName}!".to_string());
+    /// let result = collection.replace(&mut config);
+    /// // result might be Value::String("Hello John!")
+    /// ```
+    ///
+    /// # Performance Notes
+    ///
+    /// - Full replacement is more efficient as it avoids string manipulation
+    /// - Partial replacement processes in reverse order to avoid position shifts
+    /// - String conversion is performed for all non-string generated values in partial mode
     pub fn replace(&self, config: &mut GeneratorConfig) -> Option<Value> {
         let mut value = self.value.clone();
         if self.full_replace {

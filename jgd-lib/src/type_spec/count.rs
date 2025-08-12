@@ -3,18 +3,214 @@ use serde::Deserialize;
 
 use crate::type_spec::GeneratorConfig;
 
+/// Represents count specifications for JGD (JSON Generator Definition) entities.
+///
+/// `Count` defines how many items should be generated for arrays, collections,
+/// or repeated elements in JGD schemas. It supports both fixed counts and
+/// dynamic ranges, allowing for flexible data generation scenarios.
+///
+/// # JGD Schema Usage
+///
+/// In JGD schemas, count specifications control the cardinality of generated
+/// data structures. They are commonly used with:
+/// - Array generation (how many array elements to create)
+/// - Entity repetition (how many instances of an entity to generate)
+/// - Collection sizing (dynamic sizing of data collections)
+///
+/// # Variants
+///
+/// - **Fixed(u64)**: Generates exactly the specified number of items
+/// - **Range((u64, u64))**: Generates a random number of items within the range (inclusive)
+///
+/// # Serialization Format
+///
+/// The enum uses `#[serde(untagged)]` for natural JSON representation:
+/// - Fixed count: `42` (just a number)
+/// - Range count: `[5, 10]` (array with min and max values)
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// use jgd_lib::{Count, GetCount, GeneratorConfig};
+///
+/// let mut config = GeneratorConfig::new("EN", Some(42));
+///
+/// // Fixed count - always generates exactly 5 items
+/// let fixed = Count::Fixed(5);
+/// assert_eq!(fixed.count(&mut config), 5);
+///
+/// // Range count - generates between 1 and 10 items
+/// let range = Count::Range((1, 10));
+/// let result = range.count(&mut config);
+/// assert!((1..=10).contains(&result));
+/// ```
+///
+/// # JSON Schema Examples
+///
+/// ```json
+/// {
+///   "array": {
+///     "count": 5,           // Fixed count
+///     "element": { ... }
+///   }
+/// }
+/// ```
+///
+/// ```json
+/// {
+///   "array": {
+///     "count": [1, 10],     // Range count
+///     "element": { ... }
+///   }
+/// }
+/// ```
 #[derive(Debug, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum Count {
+    /// A fixed count that always generates exactly the specified number of items.
+    ///
+    /// This variant is used when you need a consistent, predictable number of
+    /// generated items. The value represents the exact count to generate.
+    ///
+    /// # JSON Representation
+    /// ```json
+    /// 42
+    /// ```
+    ///
+    /// # Use Cases
+    /// - Testing scenarios requiring consistent data sizes
+    /// - Schema definitions with fixed requirements
+    /// - Performance testing with known data volumes
     Fixed(u64),
+
+    /// A range count that generates a random number of items within the specified bounds.
+    ///
+    /// The tuple contains `(min, max)` values where both bounds are inclusive.
+    /// The actual count is randomly determined each time `count()` is called.
+    ///
+    /// # JSON Representation
+    /// ```json
+    /// [5, 15]
+    /// ```
+    ///
+    /// # Use Cases
+    /// - Realistic data generation with natural variation
+    /// - Stress testing with variable load sizes
+    /// - Simulating real-world data patterns
     Range((u64,u64))
 }
 
+/// Trait for extracting count values from count specifications.
+///
+/// This trait provides a unified interface for obtaining count values from
+/// different types that can specify counts in JGD generation. It abstracts
+/// over the different ways counts can be represented and ensures consistent
+/// behavior across the generation system.
+///
+/// # Design Philosophy
+///
+/// The trait allows for extensible count specifications while maintaining
+/// a simple interface. It takes a mutable reference to `GeneratorConfig`
+/// to access the random number generator for range-based counts.
+///
+/// # Implementations
+///
+/// - `Count`: Direct count specification (fixed or range)
+/// - `Option<Count>`: Optional count with default fallback
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// use jgd_lib::{Count, GetCount, GeneratorConfig};
+///
+/// let mut config = GeneratorConfig::new("EN", Some(42));
+///
+/// // Using Count directly
+/// let count = Count::Range((1, 5));
+/// let result = count.count(&mut config);
+///
+/// // Using Option<Count> with Some
+/// let opt_count = Some(Count::Fixed(3));
+/// let result = opt_count.count(&mut config);
+///
+/// // Using Option<Count> with None (defaults to 1)
+/// let none_count: Option<Count> = None;
+/// let result = none_count.count(&mut config); // Returns 1
+/// ```
 pub trait GetCount {
+    /// Generates a count value using the provided generator configuration.
+    ///
+    /// This method produces a `u64` count value according to the implementing
+    /// type's specification. For fixed counts, it returns the constant value.
+    /// For range counts, it uses the random number generator to produce a
+    /// value within the specified bounds.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - Mutable reference to the generator configuration containing
+    ///   the random number generator and other generation context
+    ///
+    /// # Returns
+    ///
+    /// A `u64` representing the number of items to generate
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use jgd_lib::{Count, GetCount, GeneratorConfig};
+    ///
+    /// let mut config = GeneratorConfig::new("EN", Some(42));
+    ///
+    /// let fixed = Count::Fixed(5);
+    /// assert_eq!(fixed.count(&mut config), 5);
+    ///
+    /// let range = Count::Range((1, 10));
+    /// let result = range.count(&mut config);
+    /// assert!((1..=10).contains(&result));
+    /// ```
     fn count(&self, config: &mut GeneratorConfig) -> u64;
 }
 
 impl GetCount for Count {
+    /// Generates a count value based on the Count variant.
+    ///
+    /// This implementation handles both fixed and range count specifications:
+    ///
+    /// - **Fixed**: Returns the constant value immediately
+    /// - **Range**: Uses the RNG to generate a random value within the inclusive range
+    ///
+    /// # Deterministic Behavior
+    ///
+    /// When the `GeneratorConfig` is created with a seed, range-based counts
+    /// will produce deterministic results, which is useful for:
+    /// - Testing with reproducible data
+    /// - Debugging generation issues
+    /// - Creating consistent development datasets
+    ///
+    /// # Range Semantics
+    ///
+    /// Range bounds are inclusive on both ends. A range of `(5, 10)` can
+    /// generate any value from 5 to 10, including both 5 and 10.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use jgd_lib::{Count, GetCount, GeneratorConfig};
+    ///
+    /// let mut config = GeneratorConfig::new("EN", Some(42));
+    ///
+    /// // Fixed count always returns the same value
+    /// let fixed = Count::Fixed(7);
+    /// assert_eq!(fixed.count(&mut config), 7);
+    /// assert_eq!(fixed.count(&mut config), 7); // Always 7
+    ///
+    /// // Range count varies within bounds
+    /// let range = Count::Range((3, 8));
+    /// for _ in 0..10 {
+    ///     let result = range.count(&mut config);
+    ///     assert!((3..=8).contains(&result));
+    /// }
+    /// ```
     fn count(&self, config: &mut GeneratorConfig) -> u64 {
         match self {
             Count::Fixed(n) => *n,
@@ -24,6 +220,54 @@ impl GetCount for Count {
 }
 
 impl GetCount for Option<Count> {
+    /// Generates a count value from an optional Count specification.
+    ///
+    /// This implementation provides convenient default behavior for optional
+    /// count specifications commonly used in JGD schemas where count may be
+    /// omitted.
+    ///
+    /// # Behavior
+    ///
+    /// - **Some(count)**: Delegates to the wrapped `Count`'s implementation
+    /// - **None**: Defaults to `Count::Fixed(1)`, generating exactly 1 item
+    ///
+    /// # Default Semantics
+    ///
+    /// The default count of 1 is chosen because:
+    /// - It's the most common case for single item generation
+    /// - It avoids empty collections which might break downstream processing
+    /// - It provides sensible behavior for optional array sizes
+    ///
+    /// # JGD Schema Integration
+    ///
+    /// This implementation allows JGD schemas to omit count specifications
+    /// when single-item generation is desired, making schemas more concise:
+    ///
+    /// ```json
+    /// {
+    ///   "array": {
+    ///     // count omitted - defaults to 1
+    ///     "element": { "type": "string" }
+    ///   }
+    /// }
+    /// ```
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use jgd_lib::{Count, GetCount, GeneratorConfig};
+    ///
+    /// let mut config = GeneratorConfig::new("EN", Some(42));
+    ///
+    /// // Some count uses the wrapped specification
+    /// let some_count = Some(Count::Range((2, 5)));
+    /// let result = some_count.count(&mut config);
+    /// assert!((2..=5).contains(&result));
+    ///
+    /// // None count defaults to 1
+    /// let none_count: Option<Count> = None;
+    /// assert_eq!(none_count.count(&mut config), 1);
+    /// ```
     fn count(&self, config: &mut GeneratorConfig) -> u64 {
         self.clone().unwrap_or(Count::Fixed(1)).count(config)
     }
