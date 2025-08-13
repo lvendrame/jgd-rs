@@ -104,7 +104,7 @@ impl FakeKeys {
     pub const NAME_NAME: &'static str = "name.name";
     pub const NAME_NAME_WITH_TITLE: &'static str = "name.nameWithTitle";
     pub const NUMBER_DIGIT: &'static str = "number.digit";
-    pub const NUMBER_NUMBER_WITH_FORMAT: &'static str = "number.numberWithFormat<'a>";
+    pub const NUMBER_NUMBER_WITH_FORMAT: &'static str = "number.numberWithFormat";
     pub const PHONE_NUMBER_PHONE_NUMBER: &'static str = "phone_number.phoneNumber";
     pub const PHONE_NUMBER_CELL_NUMBER: &'static str = "phone_number.cellNumber";
     pub const FILESYSTEM_FILE_PATH: &'static str = "filesystem.filePath";
