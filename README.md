@@ -3,7 +3,7 @@
 [![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A powerful ecosystem for generating realistic JSON data using declarative schema definitions. This repository contains both the core library and command-line tool for working with JGD (JSON Generator Definition) schemas.
+An ecosystem for generating realistic JSON data using declarative schema definitions. This repository contains both the core library and command-line tool for working with JGD (JSON Generator Definition) schemas.
 
 ## 📦 Components
 

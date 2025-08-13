@@ -3,7 +3,7 @@
 [![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A powerful Rust library for generating realistic JSON data using declarative schema definitions. JGD (JSON Generator Definition) provides a flexible way to create fake data with complex relationships, cross-references, and customizable generation rules.
+A simple Rust library for generating realistic JSON data using declarative schema definitions. JGD (JSON Generator Definition) provides a flexible way to create fake data with complex relationships, cross-references, and customizable generation rules.
 
 ## Features
 
