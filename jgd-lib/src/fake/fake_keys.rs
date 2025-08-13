@@ -4,6 +4,12 @@ pub struct FakeKeys {
     pub sets: HashSet<&'static str>,
 }
 
+impl Default for FakeKeys {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FakeKeys {
     pub const ADDRESS_CITY_PREFIX: &'static str = "address.cityPrefix";
     pub const ADDRESS_CITY_SUFFIX: &'static str = "address.citySuffix";
