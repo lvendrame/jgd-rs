@@ -96,7 +96,7 @@ fn fingerprint(obj: &Value, unique_fields: &[String]) -> String {
 /// # Examples
 ///
 /// ```rust,ignore
-/// use jgd_lib::{Entity, Field, Count, JsonGenerator, GeneratorConfig};
+/// use jgd_rs::{Entity, Field, Count, JsonGenerator, GeneratorConfig};
 /// use indexmap::IndexMap;
 ///
 /// let mut config = GeneratorConfig::new("EN", Some(42));
@@ -320,7 +320,7 @@ impl JsonGenerator for Entity {
     /// # Examples
     ///
     /// ```rust,ignore
-    /// use jgd_lib::{Entity, Field, Count, JsonGenerator, GeneratorConfig};
+    /// use jgd_rs::{Entity, Field, Count, JsonGenerator, GeneratorConfig};
     /// use indexmap::IndexMap;
     ///
     /// let mut config = GeneratorConfig::new("EN", Some(42));
@@ -479,7 +479,7 @@ impl JsonGenerator for IndexMap<String, Entity> {
     /// # Examples
     ///
     /// ```rust,ignore
-    /// use jgd_lib::{Entity, Field, JsonGenerator, GeneratorConfig};
+    /// use jgd_rs::{Entity, Field, JsonGenerator, GeneratorConfig};
     /// use indexmap::IndexMap;
     ///
     /// let mut config = GeneratorConfig::new("EN", Some(42));

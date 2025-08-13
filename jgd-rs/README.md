@@ -1,4 +1,4 @@
-# JGD-lib - JSON Generator Definition Library
+# JGD-rs - JSON Generator Definition Rust Library
 
 [![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -22,17 +22,17 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-jgd-lib = "0.1.0"
+jgd-rs = "0.1.0"
 ```
 
 ## Quick Start
 
 ### Basic Usage with Library Functions
 
-The simplest way to use jgd-lib is through the convenience functions:
+The simplest way to use jgd-rs is through the convenience functions:
 
 ```rust
-use jgd_lib::{generate_jgd_from_str, generate_jgd_from_file};
+use jgd_rs::{generate_jgd_from_str, generate_jgd_from_file};
 use std::path::PathBuf;
 
 // Generate from JSON string
@@ -67,7 +67,7 @@ let json_data = generate_jgd_from_file(&file_path);
 For more control, use the `Jgd` struct directly:
 
 ```rust
-use jgd_lib::Jgd;
+use jgd_rs::Jgd;
 
 let schema = r#"{
   "$format": "jgd/v1",

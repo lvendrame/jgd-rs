@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-jgd-lib = {path = "../jgd-lib"}
+jgd-rs = {path = "../jgd-rs"}
 anyhow = "1.0.98"
 chrono = { version = "0.4.41", features = ["serde", "clock"] }
 clap = { version = "4.5.43", features = ["derive"] }

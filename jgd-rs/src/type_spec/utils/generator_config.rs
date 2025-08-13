@@ -26,7 +26,7 @@ use crate::fake::{FakeGenerator, FakeKeys};
 /// # Examples
 ///
 /// ```rust,ignore
-/// use jgd_lib::{GeneratorConfig, NumberSpec};
+/// use jgd_rs::{GeneratorConfig, NumberSpec};
 ///
 /// // Create config with English locale and deterministic seed
 /// let mut config = GeneratorConfig::new("EN", Some(42));
@@ -100,7 +100,7 @@ impl GeneratorConfig {
     /// # Examples
     ///
     /// ```rust,ignore
-    /// use jgd_lib::GeneratorConfig;
+    /// use jgd_rs::GeneratorConfig;
     ///
     /// // Deterministic generation with seed
     /// let config = GeneratorConfig::new("EN", Some(42));
@@ -156,7 +156,7 @@ impl GeneratorConfig {
     ///
     /// ```rust,ignore
     /// use serde_json::{json, Value};
-    /// use jgd_lib::GeneratorConfig;
+    /// use jgd_rs::GeneratorConfig;
     ///
     /// let array = json!([
     ///     {"name": "Alice", "age": 30},
@@ -203,7 +203,7 @@ impl GeneratorConfig {
     /// # Examples
     ///
     /// ```rust,ignore
-    /// use jgd_lib::GeneratorConfig;
+    /// use jgd_rs::GeneratorConfig;
     /// use serde_json::json;
     ///
     /// let mut config = GeneratorConfig::new("EN", Some(42));

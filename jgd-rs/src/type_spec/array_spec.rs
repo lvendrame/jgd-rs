@@ -68,7 +68,7 @@ use crate::type_spec::{Count, Field, GetCount, JsonGenerator};
 /// # Examples
 ///
 /// ```rust,ignore
-/// use jgd_lib::{ArraySpec, Field, Count, JsonGenerator, GeneratorConfig};
+/// use jgd_rs::{ArraySpec, Field, Count, JsonGenerator, GeneratorConfig};
 /// use serde_json::json;
 ///
 /// let mut config = GeneratorConfig::new("EN", Some(42));
@@ -232,7 +232,7 @@ impl JsonGenerator for ArraySpec {
     /// # Examples
     ///
     /// ```rust,ignore
-    /// use jgd_lib::{ArraySpec, Field, Count, NumberSpec, JsonGenerator, GeneratorConfig};
+    /// use jgd_rs::{ArraySpec, Field, Count, NumberSpec, JsonGenerator, GeneratorConfig};
     /// use serde_json::{json, Value};
     ///
     /// let mut config = GeneratorConfig::new("EN", Some(42));

@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "jgd-lib",
+    "jgd-rs",
     "jgd-rs-cli"
 ]
 resolver = "2"

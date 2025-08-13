@@ -33,7 +33,7 @@ static RE_FAKES: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(\$\{(.+?)(\(.+
 /// # Examples
 ///
 /// ```rust,ignore
-/// use jgd_lib::Replacer;
+/// use jgd_rs::Replacer;
 /// use regex::Regex;
 ///
 /// let regex = Regex::new(r"(\$\{(.+?)(\(.+?\))?\})").unwrap();
@@ -119,7 +119,7 @@ impl Replacer {
     ///
     /// ```rust,ignore
     /// use regex::Regex;
-    /// use jgd_lib::Replacer;
+    /// use jgd_rs::Replacer;
     ///
     /// let regex = Regex::new(r"(\$\{(.+?)(\(.+?\))?\})").unwrap();
     /// let captures = regex.captures("${name.firstName}").unwrap();
@@ -173,7 +173,7 @@ impl Replacer {
 /// # Examples
 ///
 /// ```rust,ignore
-/// use jgd_lib::{ReplacerCollection, GeneratorConfig};
+/// use jgd_rs::{ReplacerCollection, GeneratorConfig};
 ///
 /// let mut config = GeneratorConfig::new("EN", Some(42));
 ///
@@ -234,7 +234,7 @@ impl ReplacerCollection {
     /// # Examples
     ///
     /// ```rust,ignore
-    /// use jgd_lib::ReplacerCollection;
+    /// use jgd_rs::ReplacerCollection;
     ///
     /// // Full replacement case
     /// let collection = ReplacerCollection::new("${name.firstName}".to_string());
@@ -276,7 +276,7 @@ impl ReplacerCollection {
     /// # Examples
     ///
     /// ```rust,ignore
-    /// use jgd_lib::ReplacerCollection;
+    /// use jgd_rs::ReplacerCollection;
     ///
     /// let empty = ReplacerCollection::new("Hello world!".to_string());
     /// assert!(empty.is_empty());
@@ -350,7 +350,7 @@ impl ReplacerCollection {
     /// # Examples
     ///
     /// ```rust,ignore
-    /// use jgd_lib::{ReplacerCollection, GeneratorConfig};
+    /// use jgd_rs::{ReplacerCollection, GeneratorConfig};
     ///
     /// let mut config = GeneratorConfig::new("EN", Some(42));
     ///

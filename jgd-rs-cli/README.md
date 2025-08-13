@@ -4,7 +4,7 @@ A command-line interface for generating JSON data from JGD (JSON Generator Defin
 
 ## Overview
 
-The JGD-rs CLI tool allows you to generate realistic JSON data from declarative schema definitions directly from the command line. It's built on top of the [jgd-lib](../jgd-lib/) library and provides a simple interface for batch JSON generation, testing, and data seeding.
+The JGD-rs CLI tool allows you to generate realistic JSON data from declarative schema definitions directly from the command line. It's built on top of the [jgd-rs](../jgd-rs/) library and provides a simple interface for batch JSON generation, testing, and data seeding.
 
 ## Installation
 
@@ -279,7 +279,7 @@ RUST_LOG=debug jgd-rs-cli schema.jgd --pretty
 
 ## Schema Validation
 
-The CLI tool automatically validates input schemas against the JGD specification. For additional validation, you can use external JSON Schema validators with the [JGD schema definition](../jgd-lib/schema/jgd.schema.json).
+The CLI tool automatically validates input schemas against the JGD specification. For additional validation, you can use external JSON Schema validators with the [JGD schema definition](../jgd-rs/schema/jgd.schema.json).
 
 ## Exit Codes
 
@@ -288,7 +288,7 @@ The CLI tool automatically validates input schemas against the JGD specification
 
 ## Related Documentation
 
-- **[JGD Library Documentation](../jgd-lib/README.md)** - Complete API reference and schema documentation
+- **[JGD Library Documentation](../jgd-rs/README.md)** - Complete API reference and schema documentation
 - **[JSON Schema Definition](../schema/jgd.schema.json)** - Formal schema specification
 - **[Example Schemas](../examples/)** - Sample JGD files to get started
 

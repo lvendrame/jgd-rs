@@ -60,7 +60,7 @@
 //!
 //! ### Loading from File
 //! ```rust
-//! # use jgd_lib::Jgd;
+//! # use jgd_rs::Jgd;
 //! # use std::fs;
 //! # use std::path::PathBuf;
 //! # let schema_content = r#"{"$format": "jgd/v1", "version": "1.0", "root": {"fields": {"test": "value"}}}"#;
@@ -72,7 +72,7 @@
 //!
 //! ### Loading from String
 //! ```rust
-//! # use jgd_lib::Jgd;
+//! # use jgd_rs::Jgd;
 //! let schema = r#"{"$format": "jgd/v1", "version": "1.0", "root": {"fields": {"name": "Test"}}}"#;
 //! let jgd = Jgd::from(schema);
 //! let data = jgd.generate();
@@ -80,7 +80,7 @@
 //!
 //! ### Converting Schema to Generation Config
 //! ```rust
-//! # use jgd_lib::Jgd;
+//! # use jgd_rs::Jgd;
 //! let jgd = Jgd::from(r#"{"$format": "jgd/v1", "version": "1.0", "seed": 42, "defaultLocale": "FR", "root": {"fields": {}}}"#);
 //! let config = jgd.create_config();
 //! // Config now contains locale "FR" and seed 42
@@ -120,7 +120,7 @@ fn default_locale() -> String {
 ///
 /// ## Root Mode Schema
 /// ```rust
-/// # use jgd_lib::Jgd;
+/// # use jgd_rs::Jgd;
 /// let schema = r#"{
 ///   "$format": "jgd/v1",
 ///   "version": "1.0.0",
@@ -137,7 +137,7 @@ fn default_locale() -> String {
 ///
 /// ## Entities Mode Schema
 /// ```rust
-/// # use jgd_lib::Jgd;
+/// # use jgd_rs::Jgd;
 /// let schema = r#"{
 ///   "$format": "jgd/v1",
 ///   "version": "2.0.0",
@@ -225,7 +225,7 @@ impl Jgd {
     /// # Examples
     ///
     /// ```rust
-    /// # use jgd_lib::Jgd;
+    /// # use jgd_rs::Jgd;
     /// # use std::fs;
     /// # use std::path::PathBuf;
     /// # let schema_content = r#"{"$format": "jgd/v1", "version": "1.0", "root": {"fields": {"test": "value"}}}"#;
@@ -254,7 +254,7 @@ impl Jgd {
     /// # Examples
     ///
     /// ```rust
-    /// # use jgd_lib::Jgd;
+    /// # use jgd_rs::Jgd;
     /// let jgd = Jgd::from(r#"{
     ///   "$format": "jgd/v1",
     ///   "version": "1.0",
@@ -289,7 +289,7 @@ impl Jgd {
     ///
     /// ## Root Mode Generation
     /// ```rust
-    /// # use jgd_lib::Jgd;
+    /// # use jgd_rs::Jgd;
     /// # use serde_json::Value;
     /// let jgd = Jgd::from(r#"{
     ///   "$format": "jgd/v1",
@@ -307,7 +307,7 @@ impl Jgd {
     ///
     /// ## Entities Mode Generation
     /// ```rust
-    /// # use jgd_lib::Jgd;
+    /// # use jgd_rs::Jgd;
     /// # use serde_json::Value;
     /// let jgd = Jgd::from(r#"{
     ///   "$format": "jgd/v1",
@@ -360,7 +360,7 @@ impl Jgd {
 /// # Examples
 ///
 /// ```rust
-/// # use jgd_lib::Jgd;
+/// # use jgd_rs::Jgd;
 /// let schema_str = r#"{
 ///   "$format": "jgd/v1",
 ///   "version": "1.0.0",
@@ -400,7 +400,7 @@ impl From<&str> for Jgd {
 /// # Examples
 ///
 /// ```rust
-/// # use jgd_lib::Jgd;
+/// # use jgd_rs::Jgd;
 /// let schema_string = String::from(r#"{
 ///   "$format": "jgd/v1",
 ///   "version": "1.0.0",
@@ -441,7 +441,7 @@ impl From<String> for Jgd {
 /// # Examples
 ///
 /// ```rust
-/// # use jgd_lib::Jgd;
+/// # use jgd_rs::Jgd;
 /// # use serde_json::{json, Value};
 /// let schema_value = json!({
 ///   "$format": "jgd/v1",

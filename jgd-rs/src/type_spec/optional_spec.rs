@@ -160,7 +160,7 @@ impl JsonGenerator for OptionalSpec {
     /// # Examples
     ///
     /// ```rust,ignore
-    /// use jgd_lib::{OptionalSpec, Field, GeneratorConfig};
+    /// use jgd_rs::{OptionalSpec, Field, GeneratorConfig};
     ///
     /// // 80% chance of generating a string
     /// let optional_field = OptionalSpec {

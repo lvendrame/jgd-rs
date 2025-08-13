@@ -1,15 +1,15 @@
-# JGD-rs - JSON Generator Definition
+# JGD - JSON Generator Definition
 
 [![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A powerful Rust ecosystem for generating realistic JSON data using declarative schema definitions. This repository contains both the core library and command-line tool for working with JGD (JSON Generator Definition) schemas.
+A powerful ecosystem for generating realistic JSON data using declarative schema definitions. This repository contains both the core library and command-line tool for working with JGD (JSON Generator Definition) schemas.
 
 ## 📦 Components
 
-### [JGD Library](./jgd-lib/)
+### [JGD Rust Library](./jgd-rs/)
 
-The core Rust library that powers JSON data generation. See [jgd-lib README](./jgd-lib/README.md) for detailed documentation, API reference, and usage examples.
+The core Rust library that powers JSON data generation. See [jgd-rs README](./jgd-rs/README.md) for detailed documentation, API reference, and usage examples.
 
 ### [JGD CLI Tool](./jgd-rs-cli/)
 
@@ -83,13 +83,13 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-jgd-lib = "0.1.0"
+jgd-rs = "0.1.0"
 ```
 
 Generate data in your Rust code:
 
 ```rust
-use jgd_lib::generate_jgd_from_str;
+use jgd_rs::generate_jgd_from_str;
 
 let schema = r#"{
   "$format": "jgd/v1",
@@ -250,7 +250,7 @@ cargo run --bin jgd-rs-cli -- examples/single-object-root.jgd
 
 ```
 jgd-rs/
-├── jgd-lib/              # Core library
+├── jgd-rs/              # Core library
 │   ├── src/              # Library source code
 │   ├── examples/         # Example JGD schema files
 │   ├── schema/           # JSON Schema definition
@@ -275,9 +275,9 @@ Generate locale-specific data with these supported locales:
 
 ## 📚 Documentation
 
-- **[Library Documentation](./jgd-lib/README.md)** - Complete API reference and usage guide
-- **[JSON Schema](./jgd-lib/schema/jgd.schema.json)** - Formal schema definition for validation
-- **[Examples](./jgd-lib/examples/)** - Sample JGD schema files
+- **[Library Documentation](./jgd-rs/README.md)** - Complete API reference and usage guide
+- **[JSON Schema](./jgd-rs/schema/jgd.schema.json)** - Formal schema definition for validation
+- **[Examples](./jgd-rs/examples/)** - Sample JGD schema files
 
 ## 🤝 Contributing
 
@@ -307,7 +307,7 @@ Add the schema reference to your JGD files:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/lvendrame/jgd-rs/refs/heads/main/jgd-lib/schema/jgd.schema.json",
+  "$schema": "https://raw.githubusercontent.com/lvendrame/jgd-rs/refs/heads/main/jgd-rs/schema/jgd.schema.json",
   "$format": "jgd/v1",
   ...
 }
@@ -320,4 +320,4 @@ You can validate your JGD schemas using online JSON Schema validators:
 - [JSONSchemaLint](https://jsonschemalint.com/)
 - [JSON Schema Validator](https://www.jsonschemavalidator.net/)
 
-Just paste the [schema URL](https://raw.githubusercontent.com/lvendrame/jgd-rs/refs/heads/main/jgd-lib/schema/jgd.schema.json) and your JGD content.
+Just paste the [schema URL](https://raw.githubusercontent.com/lvendrame/jgd-rs/refs/heads/main/jgd-rs/schema/jgd.schema.json) and your JGD content.

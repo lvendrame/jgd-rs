@@ -31,7 +31,7 @@ use crate::type_spec::GeneratorConfig;
 /// # Examples
 ///
 /// ```rust,ignore
-/// use jgd_lib::{Count, GetCount, GeneratorConfig};
+/// use jgd_rs::{Count, GetCount, GeneratorConfig};
 ///
 /// let mut config = GeneratorConfig::new("EN", Some(42));
 ///
@@ -121,7 +121,7 @@ pub enum Count {
 /// # Examples
 ///
 /// ```rust,ignore
-/// use jgd_lib::{Count, GetCount, GeneratorConfig};
+/// use jgd_rs::{Count, GetCount, GeneratorConfig};
 ///
 /// let mut config = GeneratorConfig::new("EN", Some(42));
 ///
@@ -157,7 +157,7 @@ pub trait GetCount {
     /// # Examples
     ///
     /// ```rust,ignore
-    /// use jgd_lib::{Count, GetCount, GeneratorConfig};
+    /// use jgd_rs::{Count, GetCount, GeneratorConfig};
     ///
     /// let mut config = GeneratorConfig::new("EN", Some(42));
     ///
@@ -195,7 +195,7 @@ impl GetCount for Count {
     /// # Examples
     ///
     /// ```rust,ignore
-    /// use jgd_lib::{Count, GetCount, GeneratorConfig};
+    /// use jgd_rs::{Count, GetCount, GeneratorConfig};
     ///
     /// let mut config = GeneratorConfig::new("EN", Some(42));
     ///
@@ -255,7 +255,7 @@ impl GetCount for Option<Count> {
     /// # Examples
     ///
     /// ```rust,ignore
-    /// use jgd_lib::{Count, GetCount, GeneratorConfig};
+    /// use jgd_rs::{Count, GetCount, GeneratorConfig};
     ///
     /// let mut config = GeneratorConfig::new("EN", Some(42));
     ///

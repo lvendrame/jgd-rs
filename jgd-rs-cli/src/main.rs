@@ -21,7 +21,7 @@ struct Cli {
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    let generated = jgd_lib::generate_jgd_from_file(&cli.input);
+    let generated = jgd_rs::generate_jgd_from_file(&cli.input);
 
     let serialized = if cli.pretty {
         serde_json::to_string_pretty(&generated).unwrap()

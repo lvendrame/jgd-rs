@@ -31,7 +31,7 @@ use crate::type_spec::JsonGenerator;
 /// # Examples
 ///
 /// ```rust
-/// use jgd_lib::{NumberSpec, JsonGenerator, GeneratorConfig};
+/// use jgd_rs::{NumberSpec, JsonGenerator, GeneratorConfig};
 /// use serde_json::Value;
 ///
 /// // Create a spec for integers between 1 and 100
@@ -99,7 +99,7 @@ impl NumberSpec {
     /// # Examples
     ///
     /// ```rust
-    /// use jgd_lib::NumberSpec;
+    /// use jgd_rs::NumberSpec;
     ///
     /// let spec = NumberSpec::new_float(0.0, 1.0);
     /// assert_eq!(spec.min, 0.0);
@@ -134,7 +134,7 @@ impl NumberSpec {
     /// # Examples
     ///
     /// ```rust
-    /// use jgd_lib::NumberSpec;
+    /// use jgd_rs::NumberSpec;
     ///
     /// let spec = NumberSpec::new_integer(1.0, 100.0);
     /// assert_eq!(spec.min, 1.0);
@@ -161,7 +161,7 @@ impl NumberSpec {
     /// # Examples
     ///
     /// ```rust
-    /// use jgd_lib::NumberSpec;
+    /// use jgd_rs::NumberSpec;
     ///
     /// let valid_spec = NumberSpec::new_float(0.0, 10.0);
     /// assert!(valid_spec.is_valid_range());
@@ -188,7 +188,7 @@ impl NumberSpec {
     /// # Examples
     ///
     /// ```rust
-    /// use jgd_lib::NumberSpec;
+    /// use jgd_rs::NumberSpec;
     ///
     /// let spec = NumberSpec::new_float(0.0, 10.0);
     /// assert_eq!(spec.range_size(), 10.0);
@@ -216,7 +216,7 @@ impl NumberSpec {
     /// # Examples
     ///
     /// ```rust
-    /// use jgd_lib::NumberSpec;
+    /// use jgd_rs::NumberSpec;
     ///
     /// let spec = NumberSpec::new_integer(1.0, 5.0);
     /// assert_eq!(spec.integer_count(), 5); // 1, 2, 3, 4, 5
@@ -262,7 +262,7 @@ impl JsonGenerator for NumberSpec {
     /// # Examples
     ///
     /// ```rust
-    /// use jgd_lib::{NumberSpec, JsonGenerator, GeneratorConfig};
+    /// use jgd_rs::{NumberSpec, JsonGenerator, GeneratorConfig};
     /// use serde_json::Value;
     ///
     /// let mut config = GeneratorConfig::new("EN", Some(42));

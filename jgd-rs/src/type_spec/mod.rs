@@ -26,7 +26,7 @@
 //! # Examples
 //!
 //! ```rust,ignore
-//! use jgd_lib::{NumberSpec, JsonGenerator, GeneratorConfig};
+//! use jgd_rs::{NumberSpec, JsonGenerator, GeneratorConfig};
 //!
 //! let mut config = GeneratorConfig::new("EN", Some(42));
 //! let number_spec = NumberSpec::new_integer(1.0, 100.0);
@@ -83,7 +83,7 @@ use serde_json::Value;
 /// # Examples
 ///
 /// ```rust,ignore
-/// use jgd_lib::{JsonGenerator, NumberSpec, GeneratorConfig};
+/// use jgd_rs::{JsonGenerator, NumberSpec, GeneratorConfig};
 /// use serde_json::Value;
 ///
 /// let mut config = GeneratorConfig::new("EN", Some(42));
