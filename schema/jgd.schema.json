@@ -1,6 +1,6 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://yourdomain.dev/jgd/schema.json",
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/lvendrame/jgd-rs/refs/heads/main/schema/jgd.schema.json",
   "title": "JGD (JSON Generator Definition)",
   "type": "object",
   "properties": {
