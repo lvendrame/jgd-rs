@@ -49,6 +49,49 @@ get_version() {
     grep '^version = ' "$cargo_toml_path" | sed 's/version = "\(.*\)"/\1/'
 }
 
+# Function to update CLI dependency to use published version
+update_cli_dependency() {
+    local lib_version=$1
+    print_info "Updating jgd-rs-cli dependency to use published version $lib_version..."
+
+    cd jgd-rs-cli
+
+    # Clean up any existing backup/temp files first
+    rm -f Cargo.toml.backup Cargo.toml.tmp
+
+    # Create backup of original Cargo.toml
+    cp Cargo.toml Cargo.toml.backup
+
+    # Update dependency to use published version instead of path
+    # Use a more robust approach with multiple sed commands
+    sed -i.tmp 's/jgd-rs = { path = "\.\.\/jgd-rs", version = "[^"]*" }/jgd-rs = "'$lib_version'"/' Cargo.toml
+    rm -f Cargo.toml.tmp
+
+    # Verify the change was made
+    if grep -q 'jgd-rs = "'$lib_version'"' Cargo.toml; then
+        print_success "Successfully updated dependency to version $lib_version"
+    else
+        print_error "Failed to update dependency in Cargo.toml"
+        restore_cli_dependency
+        exit 1
+    fi
+
+    cd - > /dev/null
+}
+
+# Function to restore CLI dependency to path-based
+restore_cli_dependency() {
+    print_info "Restoring jgd-rs-cli dependency to path-based..."
+    cd jgd-rs-cli
+    if [[ -f Cargo.toml.backup ]]; then
+        mv Cargo.toml.backup Cargo.toml
+        print_info "Restored original Cargo.toml"
+    fi
+    # Clean up any temporary files
+    rm -f Cargo.toml.tmp Cargo.toml.backup
+    cd - > /dev/null
+}
+
 # Function to publish a crate
 publish_crate() {
     local crate_dir=$1
@@ -69,9 +112,16 @@ publish_crate() {
         return 0
     fi
 
+    # Check if we need --allow-dirty flag (for CLI with backup files)
+    local allow_dirty=""
+    if [[ -f "Cargo.toml.backup" ]]; then
+        allow_dirty="--allow-dirty"
+        print_warning "Using --allow-dirty flag due to backup files"
+    fi
+
     # Dry run first
     print_info "Running dry-run for $crate_name..."
-    if ! cargo publish --dry-run; then
+    if ! cargo publish --dry-run $allow_dirty; then
         print_error "Dry-run failed for $crate_name"
         cd - > /dev/null
         return 1
@@ -86,7 +136,7 @@ publish_crate() {
 
     # Actual publish
     print_info "Publishing $crate_name to crates.io..."
-    if cargo publish; then
+    if cargo publish $allow_dirty; then
         print_success "$crate_name v$version published successfully!"
     else
         print_error "Failed to publish $crate_name"
@@ -104,6 +154,12 @@ publish_crate() {
 # Main script
 main() {
     print_info "Starting JGD-rs crates publication process..."
+
+    # Set up cleanup trap
+    trap 'restore_cli_dependency' EXIT ERR
+
+    # Clean up any existing backup files from previous runs
+    rm -f jgd-rs-cli/Cargo.toml.backup jgd-rs-cli/Cargo.toml.tmp
 
     # Check if we're in the right directory
     if [[ ! -f "Cargo.toml" ]] || [[ ! -d "jgd-rs" ]] || [[ ! -d "jgd-rs-cli" ]]; then
@@ -143,16 +199,45 @@ main() {
 
     # Publish in dependency order
     # 1. First publish the library (jgd-rs) since CLI depends on it
+    local lib_version=$(get_version jgd-rs/Cargo.toml)
     if ! publish_crate "jgd-rs" "jgd-rs"; then
         print_error "Failed to publish jgd-rs library"
         exit 1
     fi
 
-    # 2. Then publish the CLI tool
+    # 2. Update CLI dependency to use published version and publish CLI
+    if [[ "${DRY_RUN:-false}" != "true" ]]; then
+        update_cli_dependency "$lib_version"
+
+        # Build CLI with updated dependency to verify it works
+        print_info "Building CLI with published dependency..."
+        cd jgd-rs-cli
+        if ! cargo build --release; then
+            print_error "Failed to build CLI with published dependency"
+            cd - > /dev/null
+            restore_cli_dependency
+            exit 1
+        fi
+        cd - > /dev/null
+    fi
+
     if ! publish_crate "jgd-rs-cli" "jgd-rs-cli"; then
+        if [[ "${DRY_RUN:-false}" != "true" ]]; then
+            restore_cli_dependency
+        fi
         print_error "Failed to publish jgd-rs-cli"
         exit 1
     fi
+
+    # Restore original dependency configuration for development
+    if [[ "${DRY_RUN:-false}" != "true" ]]; then
+        restore_cli_dependency
+    fi
+
+    # Final cleanup
+    cd jgd-rs-cli
+    rm -f Cargo.toml.backup Cargo.toml.tmp
+    cd - > /dev/null
 
     print_success "All crates published successfully!"
     print_info "Publication complete. You can now install with:"
