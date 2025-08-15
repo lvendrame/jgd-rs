@@ -86,12 +86,12 @@
 //! // Config now contains locale "FR" and seed 42
 //! ```
 
-use std::{fs, path::PathBuf};
+use std::{fs, path::PathBuf, sync::{LazyLock, Mutex}};
 
 use indexmap::IndexMap;
 use serde::Deserialize;
 use serde_json::Value;
-use crate::type_spec::{Entity, GeneratorConfig, JsonGenerator};
+use crate::{type_spec::{Entity, GeneratorConfig, JsonGenerator}, CustomKeyFunction, JgdGlobalConfig};
 
 /// Default locale for data generation when no locale is specified.
 fn default_locale() -> String {
@@ -201,7 +201,10 @@ pub struct Jgd {
     pub root: Option<Entity>,
 }
 
+static GLOBAL_CONFIG: LazyLock<Mutex<JgdGlobalConfig>> = LazyLock::new(|| Mutex::new(JgdGlobalConfig::new()));
+
 impl Jgd {
+
     /// Loads a JGD schema from a file path.
     ///
     /// Reads the specified file and parses its JSON content into a `Jgd` struct.
@@ -337,6 +340,49 @@ impl Jgd {
 
         Value::Null
     }
+
+    /// Adds a custom key function to the global configuration.
+    ///
+    /// This method allows you to register custom faker patterns that can be used
+    /// in JGD schemas. The function will be available globally across all JGD
+    /// instances and is thread-safe.
+    ///
+    /// # Parameters
+    ///
+    /// * `key` - A static string reference that identifies the custom pattern
+    /// * `func` - A function that takes `Arguments` and returns a `Result<Value, JgdGeneratorError>`
+    ///
+    /// # Thread Safety
+    ///
+    /// This method is thread-safe and uses a mutex to ensure that custom keys
+    /// can be safely added from multiple threads. If the mutex is poisoned,
+    /// the method will silently fail to add the key.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use jgd_rs::{Jgd, Arguments};
+    /// # use serde_json::Value;
+    /// # use jgd_rs::JgdGeneratorError;
+    /// Jgd::add_custom_key("custom.greeting", Box::new(|args| {
+    ///     let name = args.get_string("World");
+    ///     Ok(Value::String(format!("Hello, {}!", name)))
+    /// }));
+    /// ```
+    pub fn add_custom_key(key: &'static str, func: CustomKeyFunction) {
+        if let Ok(mut config) = GLOBAL_CONFIG.lock() {
+            config.custom_keys.insert(key, func);
+        }
+    }
+
+    pub fn get_custom_key(key: &'static str) -> Option<CustomKeyFunction> {
+        if let Ok(config) = GLOBAL_CONFIG.lock() {
+            if let Some(func) = config.custom_keys.get(key) {
+                return Some(func.clone());
+            }
+        }
+        None
+    }
 }
 
 /// Implements conversion from string slice to `Jgd`.
@@ -465,7 +511,12 @@ impl From<Value> for Jgd {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
+    use crate::Arguments;
+
     use super::*;
+    use serde::de::value;
     use serde_json::json;
 
     #[test]
@@ -872,6 +923,18 @@ mod tests {
 
         if let Value::Object(obj) = result {
             assert!(obj.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_custom_key() {
+        let key = "custom";
+        Jgd::add_custom_key(key, Arc::new(|_| Ok(Value::String("worked".to_string()))));
+
+        if let Some(func) = Jgd::get_custom_key(key) {
+            if let Ok(Value::String(value)) = func(Arguments::None) {
+                assert_eq!("worked", value)
+            }
         }
     }
 }
