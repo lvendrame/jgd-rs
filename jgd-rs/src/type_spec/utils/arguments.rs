@@ -1,12 +1,66 @@
 use chrono::{DateTime, NaiveDateTime, Utc};
 
+/// Represents parsed arguments from faker pattern parameters.
+///
+/// Arguments are typically extracted from parentheses in faker patterns like:
+/// - `faker.name.first_name()` → `Arguments::None`
+/// - `faker.number.number(100)` → `Arguments::Fixed("100")`
+/// - `faker.number.between(1,10)` → `Arguments::Range("1", "10")`
+/// - `faker.date.between(2020-01-01..2024-12-31)` → `Arguments::Range("2020-01-01", "2024-12-31")`
+///
+/// # Examples
+///
+/// ```rust
+/// use jgd_rs::Arguments;
+///
+/// // Parse single value
+/// let args = Arguments::from("(42)");
+/// assert_eq!(args.get_number(0), 42);
+///
+/// // Parse range with comma
+/// let args = Arguments::from("(1,10)");
+/// let range = args.get_number_range(0, 100);
+/// assert_eq!(range.start, 1);
+/// assert_eq!(range.end, 10);
+///
+/// // Parse range with dots
+/// let args = Arguments::from("(1..10)");
+/// let (start, end) = args.get_string_tuple("0", "100");
+/// assert_eq!(start, "1");
+/// assert_eq!(end, "10");
+/// ```
 pub enum Arguments {
+    /// No arguments provided (empty parentheses or no parentheses)
     None,
+    /// Single fixed argument value
     Fixed(String),
+    /// Range with start and end values (separated by comma or dots)
     Range(String, String),
 }
 
 impl From<&str> for Arguments {
+    /// Parses a string into Arguments enum.
+    ///
+    /// Expects input in the format `(content)` where content can be:
+    /// - Empty: `()` → `Arguments::None`
+    /// - Single value: `(42)` → `Arguments::Fixed("42")`
+    /// - Comma-separated: `(1,10)` → `Arguments::Range("1", "10")`
+    /// - Dot-separated: `(1..10)` → `Arguments::Range("1", "10")`
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use jgd_rs::Arguments;
+    ///
+    /// let args = Arguments::from("(42)");
+    /// assert!(matches!(args, Arguments::Fixed(ref s) if s == "42"));
+    ///
+    /// let args = Arguments::from("(1,10)");
+    /// assert!(matches!(args, Arguments::Range(ref s1, ref s2) if s1 == "1" && s2 == "10"));
+    ///
+    /// let args = Arguments::from("(1..10)");
+    /// assert!(matches!(args, Arguments::Range(ref s1, ref s2) if s1 == "1" && s2 == "10"));
+    /// ```
     fn from(value: &str) -> Self {
         let parts: Vec<&str> = if let Some(args_content) = value.strip_prefix('(').and_then(|s| s.strip_suffix(')')) {
             if args_content.contains("..") {
@@ -42,7 +96,24 @@ impl From<&str> for Arguments {
 
 impl Arguments {
 
-    /// Helper function to parse single numeric argument like "5" or "35.7"
+    /// Helper function to parse a single numeric argument.
+    ///
+    /// Attempts to parse the given string as type T. If parsing fails,
+    /// returns the provided default value.
+    ///
+    /// # Arguments
+    /// * `arg` - The string to parse
+    /// * `default_value` - Value to return if parsing fails
+    ///
+    /// # Examples
+    ///
+    /// These are private helper methods used internally by the public getter methods.
+    /// They demonstrate the parsing behavior for different types of arguments.
+    ///
+    /// ```text
+    /// Arguments::parse_number("42", 0i32) -> 42
+    /// Arguments::parse_number("invalid", 0i32) -> 0 (fallback to default)
+    /// ```
     fn parse_number<T: std::str::FromStr>(arg: &str, default_value: T) -> T {
         if let Ok(value) = arg.parse::<T>() {
             return value;
@@ -51,7 +122,23 @@ impl Arguments {
         default_value
     }
 
-    // Helper function to parse time argument like "23:56:04"
+    /// Helper function to parse a time argument.
+    ///
+    /// Attempts to parse the given string as a time value. Currently supports
+    /// Unix timestamp parsing. If parsing fails, returns the provided default value.
+    ///
+    /// # Arguments
+    /// * `arg` - The string to parse (e.g., Unix timestamp)
+    /// * `default_value` - Value to return if parsing fails
+    ///
+    /// # Examples
+    ///
+    /// This is a private helper method used internally for time parsing.
+    ///
+    /// ```text
+    /// Arguments::parse_time("1640995200", default) -> OffsetDateTime from Unix timestamp
+    /// Arguments::parse_time("invalid", default) -> default (fallback)
+    /// ```
     fn parse_time(arg: &str, default_value: time::OffsetDateTime) -> time::OffsetDateTime {
         // Try parsing as RFC 3339 format (most common for APIs)
         // For now, we'll use a simple fallback since time parsing is complex
@@ -67,7 +154,27 @@ impl Arguments {
         default_value
     }
 
-    // Helper function to parse datetime argument like "2015-09-05 23:56:04" or "2014-5-17T12:34:56+09:30"
+    /// Helper function to parse a datetime argument.
+    ///
+    /// Attempts to parse the given string as a DateTime<Utc> using multiple formats:
+    /// - Direct ISO 8601 UTC parse
+    /// - RFC3339 (handles Z, offsets, fractional seconds)
+    /// - Common patterns with timezone
+    /// - Naive formats (assumes UTC)
+    ///
+    /// # Arguments
+    /// * `arg` - The string to parse (e.g., "2024-01-01T00:00:00Z", "2024-01-01 00:00:00")
+    /// * `default_value` - Value to return if parsing fails
+    ///
+    /// # Examples
+    ///
+    /// This is a private helper method used internally for datetime parsing.
+    ///
+    /// ```text
+    /// Arguments::parse_datetime("2024-01-01T00:00:00Z", default) -> DateTime<Utc> parsed
+    /// Arguments::parse_datetime("2024-01-01 00:00:00", default) -> DateTime<Utc> parsed as naive + UTC
+    /// Arguments::parse_datetime("invalid", default) -> default (fallback)
+    /// ```
     fn parse_datetime(arg: &str, default_value: DateTime<Utc>) -> DateTime<Utc> {
         if let Ok(dt) = arg.parse::<DateTime<Utc>>() {
             return dt;
@@ -112,6 +219,32 @@ impl Arguments {
         default_value
     }
 
+    /// Extracts a string value from the arguments.
+    ///
+    /// Returns the first argument for Fixed and Range variants,
+    /// or the default value for None variant.
+    ///
+    /// # Arguments
+    /// * `default_value` - Value to return if no arguments are present
+    ///
+    /// # Returns
+    /// - `Arguments::None` → `default_value`
+    /// - `Arguments::Fixed(arg)` → `arg`
+    /// - `Arguments::Range(arg1, arg2)` → `arg1`
+    ///
+    /// # Examples
+    /// ```rust
+    /// use jgd_rs::Arguments;
+    ///
+    /// let args = Arguments::from("(hello)");
+    /// assert_eq!(args.get_string("default"), "hello");
+    ///
+    /// let args = Arguments::from("(start,end)");
+    /// assert_eq!(args.get_string("default"), "start");
+    ///
+    /// let args = Arguments::None;
+    /// assert_eq!(args.get_string("default"), "default");
+    /// ```
     pub fn get_string<'a>(&'a self, default_value: &'a str) -> &'a str {
         match self {
             Arguments::None => default_value,
@@ -120,6 +253,33 @@ impl Arguments {
         }
     }
 
+    /// Extracts a tuple of string values from the arguments.
+    ///
+    /// Returns both start and end values for different argument types.
+    ///
+    /// # Arguments
+    /// * `default_start` - Value to return as start if no arguments are present
+    /// * `default_end` - Value to return as end if no arguments are present or only one argument
+    ///
+    /// # Returns
+    /// - `Arguments::None` → `(default_start, default_end)`
+    /// - `Arguments::Fixed(arg)` → `(arg, default_end)`
+    /// - `Arguments::Range(arg1, arg2)` → `(arg1, arg2)`
+    ///
+    /// # Examples
+    /// ```rust
+    /// use jgd_rs::Arguments;
+    ///
+    /// let args = Arguments::from("(1,10)");
+    /// let (start, end) = args.get_string_tuple("0", "100");
+    /// assert_eq!(start, "1");
+    /// assert_eq!(end, "10");
+    ///
+    /// let args = Arguments::from("(5)");
+    /// let (start, end) = args.get_string_tuple("0", "100");
+    /// assert_eq!(start, "5");
+    /// assert_eq!(end, "100");
+    /// ```
     pub fn get_string_tuple<'a>(&'a self, default_start: &'a str, default_end: &'a str) -> (&'a str, &'a str) {
         match self {
             Arguments::None => (default_start, default_end),
@@ -128,6 +288,32 @@ impl Arguments {
         }
     }
 
+    /// Extracts a numeric value from the arguments.
+    ///
+    /// Attempts to parse the first argument as type T. If parsing fails
+    /// or no arguments are present, returns the default value.
+    ///
+    /// # Arguments
+    /// * `default_value` - Value to return if no arguments are present or parsing fails
+    ///
+    /// # Returns
+    /// - `Arguments::None` → `default_value`
+    /// - `Arguments::Fixed(arg)` → parsed `arg` or `default_value` if parsing fails
+    /// - `Arguments::Range(arg1, arg2)` → parsed `arg1` or `default_value` if parsing fails
+    ///
+    /// # Examples
+    /// ```rust
+    /// use jgd_rs::Arguments;
+    ///
+    /// let args = Arguments::from("(42)");
+    /// assert_eq!(args.get_number(0), 42);
+    ///
+    /// let args = Arguments::from("(invalid)");
+    /// assert_eq!(args.get_number(100), 100);
+    ///
+    /// let args = Arguments::from("(1,10)");
+    /// assert_eq!(args.get_number(0), 1);
+    /// ```
     pub fn get_number<T: std::str::FromStr>(&self, default_value: T) -> T {
         match self {
             Arguments::None => default_value,
@@ -136,6 +322,34 @@ impl Arguments {
         }
     }
 
+    /// Extracts a numeric range from the arguments.
+    ///
+    /// Creates a `Range<T>` from the arguments, parsing both start and end values.
+    /// If parsing fails, uses the corresponding default value.
+    ///
+    /// # Arguments
+    /// * `default_start` - Value to use as range start if no arguments or parsing fails
+    /// * `default_end` - Value to use as range end if no second argument or parsing fails
+    ///
+    /// # Returns
+    /// - `Arguments::None` → `default_start..default_end`
+    /// - `Arguments::Fixed(arg)` → `parsed_arg..default_end`
+    /// - `Arguments::Range(arg1, arg2)` → `parsed_arg1..parsed_arg2`
+    ///
+    /// # Examples
+    /// ```rust
+    /// use jgd_rs::Arguments;
+    ///
+    /// let args = Arguments::from("(1,10)");
+    /// let range = args.get_number_range(0, 100);
+    /// assert_eq!(range.start, 1);
+    /// assert_eq!(range.end, 10);
+    ///
+    /// let args = Arguments::from("(5)");
+    /// let range = args.get_number_range(0, 100);
+    /// assert_eq!(range.start, 5);
+    /// assert_eq!(range.end, 100);
+    /// ```
     pub fn get_number_range<T: std::str::FromStr>(
         &self, default_start: T, default_end: T
     ) -> std::ops::Range<T> {
@@ -147,6 +361,28 @@ impl Arguments {
         }
     }
 
+    /// Extracts a time value from the arguments.
+    ///
+    /// Attempts to parse the first argument as a time value. If parsing fails
+    /// or no arguments are present, returns the default value.
+    ///
+    /// # Arguments
+    /// * `default_value` - Value to return if no arguments are present or parsing fails
+    ///
+    /// # Returns
+    /// - `Arguments::None` → `default_value`
+    /// - `Arguments::Fixed(arg)` → parsed `arg` or `default_value` if parsing fails
+    /// - `Arguments::Range(arg1, arg2)` → parsed `arg1` or `default_value` if parsing fails
+    ///
+    /// # Examples
+    /// ```rust
+    /// use jgd_rs::Arguments;
+    /// use time::OffsetDateTime;
+    ///
+    /// let default = OffsetDateTime::now_utc();
+    /// let args = Arguments::from("(1640995200)"); // Unix timestamp
+    /// let result = args.get_time(default);
+    /// ```
     pub fn get_time(&self, default_value: time::OffsetDateTime) -> time::OffsetDateTime {
         match self {
             Arguments::None => default_value,
@@ -155,6 +391,30 @@ impl Arguments {
         }
     }
 
+    /// Extracts a time range from the arguments.
+    ///
+    /// Creates a tuple of time values from the arguments, parsing both start and end values.
+    /// If parsing fails, uses the corresponding default value.
+    ///
+    /// # Arguments
+    /// * `default_start` - Value to use as start time if no arguments or parsing fails
+    /// * `default_end` - Value to use as end time if no second argument or parsing fails
+    ///
+    /// # Returns
+    /// - `Arguments::None` → `(default_start, default_end)`
+    /// - `Arguments::Fixed(arg)` → `(parsed_arg, default_end)`
+    /// - `Arguments::Range(arg1, arg2)` → `(parsed_arg1, parsed_arg2)`
+    ///
+    /// # Examples
+    /// ```rust
+    /// use jgd_rs::Arguments;
+    /// use time::OffsetDateTime;
+    ///
+    /// let default_start = OffsetDateTime::now_utc();
+    /// let default_end = OffsetDateTime::now_utc();
+    /// let args = Arguments::from("(1640995200,1672531200)"); // Unix timestamps
+    /// let (start, end) = args.get_time_range(default_start, default_end);
+    /// ```
     pub fn get_time_range(
         &self, default_start: time::OffsetDateTime, default_end: time::OffsetDateTime
     ) -> (time::OffsetDateTime, time::OffsetDateTime) {
@@ -166,6 +426,28 @@ impl Arguments {
         }
     }
 
+    /// Extracts a datetime value from the arguments.
+    ///
+    /// Attempts to parse the first argument as a `DateTime<Utc>` using multiple formats.
+    /// If parsing fails or no arguments are present, returns the default value.
+    ///
+    /// # Arguments
+    /// * `default_value` - Value to return if no arguments are present or parsing fails
+    ///
+    /// # Returns
+    /// - `Arguments::None` → `default_value`
+    /// - `Arguments::Fixed(arg)` → parsed `arg` or `default_value` if parsing fails
+    /// - `Arguments::Range(arg1, arg2)` → parsed `arg1` or `default_value` if parsing fails
+    ///
+    /// # Examples
+    /// ```rust
+    /// use jgd_rs::Arguments;
+    /// use chrono::{DateTime, Utc};
+    ///
+    /// let default = DateTime::parse_from_rfc3339("2020-01-01T00:00:00Z").unwrap().with_timezone(&Utc);
+    /// let args = Arguments::from("(2024-01-01T00:00:00Z)");
+    /// let result = args.get_datetime(default);
+    /// ```
     pub fn get_datetime(&self, default_value: DateTime<Utc>) -> DateTime<Utc> {
         match self {
             Arguments::None => default_value,
@@ -174,6 +456,30 @@ impl Arguments {
         }
     }
 
+    /// Extracts a datetime range from the arguments.
+    ///
+    /// Creates a tuple of `DateTime<Utc>` values from the arguments, parsing both start and end values.
+    /// If parsing fails, uses the corresponding default value.
+    ///
+    /// # Arguments
+    /// * `default_start` - Value to use as start datetime if no arguments or parsing fails
+    /// * `default_end` - Value to use as end datetime if no second argument or parsing fails
+    ///
+    /// # Returns
+    /// - `Arguments::None` → `(default_start, default_end)`
+    /// - `Arguments::Fixed(arg)` → `(parsed_arg, default_end)`
+    /// - `Arguments::Range(arg1, arg2)` → `(parsed_arg1, parsed_arg2)`
+    ///
+    /// # Examples
+    /// ```rust
+    /// use jgd_rs::Arguments;
+    /// use chrono::{DateTime, Utc};
+    ///
+    /// let default_start = DateTime::parse_from_rfc3339("2020-01-01T00:00:00Z").unwrap().with_timezone(&Utc);
+    /// let default_end = DateTime::parse_from_rfc3339("2024-12-31T23:59:59Z").unwrap().with_timezone(&Utc);
+    /// let args = Arguments::from("(2024-01-01T00:00:00Z,2024-12-31T23:59:59Z)");
+    /// let (start, end) = args.get_datetime_range(default_start, default_end);
+    /// ```
     pub fn get_datetime_range(
         &self, default_start: DateTime<Utc>, default_end: DateTime<Utc>
     ) -> (DateTime<Utc>, DateTime<Utc>) {
