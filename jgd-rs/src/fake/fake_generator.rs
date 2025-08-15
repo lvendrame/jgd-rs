@@ -1,10 +1,10 @@
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use rand::rngs::StdRng;
 use regex::Regex;
 use serde_json::Value;
 use std::sync::LazyLock;
 
-use crate::{fake::{fake_keys::FakeKeys, fake_locale_generator::{FakeGeneratorArSa, FakeGeneratorCyGb, FakeGeneratorDeDe, FakeGeneratorEn, FakeGeneratorFrFr, FakeGeneratorItIt, FakeGeneratorJaJp, FakeGeneratorPtBr, FakeLocaleGenerator}}, locales_keys::LocalesKeys};
+use crate::{fake::{fake_keys::FakeKeys, fake_locale_generator::{FakeGeneratorArSa, FakeGeneratorCyGb, FakeGeneratorDeDe, FakeGeneratorEn, FakeGeneratorFrFr, FakeGeneratorItIt, FakeGeneratorJaJp, FakeGeneratorPtBr, FakeLocaleGenerator}}, locales_keys::LocalesKeys, Arguments};
 
 static RE_KEY: LazyLock<regex::Regex> = LazyLock::new(|| Regex::new(r"([^(]+)(\(.+\))?").unwrap());
 
@@ -29,131 +29,11 @@ impl FakeGenerator {
         Self { locale_generator }
     }
 
-    // Helper function to parse range arguments like "(3..8)" or "(3,8)"
-    pub fn parse_range(args: &str, default_range: std::ops::Range<usize>) -> std::ops::Range<usize> {
-        if let Some(args_content) = args.strip_prefix('(').and_then(|s| s.strip_suffix(')')) {
-            if args_content.contains("..") {
-                let parts: Vec<&str> = args_content.split("..").collect();
-                if parts.len() == 2 {
-                    if let (Ok(start), Ok(end)) = (parts[0].parse::<usize>(), parts[1].parse::<usize>()) {
-                        return start..end;
-                    }
-                }
-            } else if args_content.contains(',') {
-                let parts: Vec<&str> = args_content.split(',').map(|s| s.trim()).collect();
-                if parts.len() == 2 {
-                    if let (Ok(start), Ok(end)) = (parts[0].parse::<usize>(), parts[1].parse::<usize>()) {
-                        return start..end;
-                    }
-                }
-            } else if let Ok(single_val) = args_content.parse::<usize>() {
-                return single_val..(single_val + 1);
-            }
-        }
-        default_range
-    }
-
-    // Helper function to parse single numeric argument like "(5)" or "(50)"
-    pub fn parse_single_number<T: std::str::FromStr>(args: &str, default_value: T) -> T {
-        if let Some(args_content) = args.strip_prefix('(').and_then(|s| s.strip_suffix(')')) {
-            if let Ok(value) = args_content.trim().parse::<T>() {
-                return value;
-            }
-        }
-        default_value
-    }
-
-    // Helper function to parse string argument like "(###-###-####)"
-    pub fn parse_string_arg<'a>(args: &'a str, default_value: &'a str) -> &'a str {
-        if let Some(args_content) = args.strip_prefix('(').and_then(|s| s.strip_suffix(')')) {
-            if !args_content.trim().is_empty() {
-                return args_content.trim();
-            }
-        }
-        default_value
-    }
-
-    // Helper function to parse time argument like "23:56:04"
-    pub fn parse_time(args: &str, default_value: time::OffsetDateTime) -> time::OffsetDateTime {
-        let args_content = args
-            .strip_prefix('(').and_then(|s| s.strip_suffix(')'))
-            .unwrap_or(args);
-
-        let args_content = args_content.trim();
-        if !args_content.is_empty() {
-            // Try parsing as RFC 3339 format (most common for APIs)
-            // For now, we'll use a simple fallback since time parsing is complex
-            // This could be enhanced with proper format descriptors later
-
-            // Simple fallback: try to parse as Unix timestamp
-            if let Ok(timestamp) = args_content.parse::<i64>() {
-                if let Ok(datetime) = time::OffsetDateTime::from_unix_timestamp(timestamp) {
-                    return datetime;
-                }
-            }
-
-            return default_value;
-        }
-
-        default_value
-    }
-
-    // Helper function to parse datetime argument like "2015-09-05 23:56:04" or "2014-5-17T12:34:56+09:30"
-    pub fn parse_datetime(args: &str, default_value: DateTime<chrono::Utc>) -> DateTime<Utc> {
-        let args_content = args
-            .strip_prefix('(').and_then(|s| s.strip_suffix(')'))
-            .unwrap_or(args);
-
-        let args_content = args_content.trim();
-        if !args_content.is_empty() {
-            if let Ok(dt) = args_content.parse::<chrono::DateTime<chrono::Utc>>() {
-                return dt;
-            }
-
-            // 1. Direct ISO 8601 UTC parse
-            if let Ok(dt) = args_content.parse::<DateTime<Utc>>() {
-                return dt;
-            }
-
-            // 2. RFC3339 (handles Z, offsets, fractional seconds)
-            if let Ok(dt) = DateTime::parse_from_rfc3339(args_content) {
-                return dt.with_timezone(&Utc);
-            }
-
-            // 3. Try common patterns with timezone
-            let tz_formats = [
-                "%Y-%m-%dT%H:%M:%S%:z",
-                "%Y-%m-%dT%H:%M:%SZ",
-                "%Y-%m-%dT%H:%M:%S%.3f%:z",
-                "%Y-%m-%dT%H:%M:%S%.3fZ",
-            ];
-            for fmt in tz_formats {
-                if let Ok(dt) = DateTime::parse_from_str(args_content, fmt) {
-                    return dt.with_timezone(&Utc);
-                }
-            }
-
-            // 4. Try naive formats and assume UTC
-            let naive_formats = [
-                "%Y-%m-%d %H:%M:%S",
-                "%Y-%m-%dT%H:%M:%S",
-                "%Y-%m-%d %H:%M:%S%.3f",
-                "%Y-%m-%dT%H:%M:%S%.3f",
-            ];
-            for fmt in naive_formats {
-                if let Ok(ndt) = NaiveDateTime::parse_from_str(args_content, fmt) {
-                    return ndt.and_utc();
-                }
-            }
-        }
-
-        default_value
-    }
-
     pub fn generate_by_key(&self, pattern: &str, rng: &mut StdRng) -> Value {
         let captures = RE_KEY.captures(pattern).unwrap();
         let key = captures.get(1).unwrap().as_str();
         let arguments = captures.get(2).map(|m| m.as_str());
+        let arguments = Arguments::from(arguments.unwrap_or(""));
         match key {
             // Address
             FakeKeys::ADDRESS_CITY_PREFIX => self.locale_generator.address_city_prefix(rng),
@@ -174,9 +54,7 @@ impl FakeGenerator {
             FakeKeys::ADDRESS_LATITUDE => self.locale_generator.address_latitude(rng),
             FakeKeys::ADDRESS_LONGITUDE => self.locale_generator.address_longitude(rng),
             FakeKeys::ADDRESS_GEOHASH => {
-                let precision = arguments
-                    .map(|args| Self::parse_single_number(args, 5u8))
-                    .unwrap_or(5u8);
+                let precision = arguments.get_number(5u8);
                 self.locale_generator.address_geohash(rng, precision)
             },
 
@@ -187,9 +65,7 @@ impl FakeGenerator {
 
             // Boolean
             FakeKeys::BOOLEAN_BOOLEAN => {
-                let ratio = arguments
-                    .map(|args| Self::parse_single_number(args, 50u8))
-                    .unwrap_or(50u8);
+                let ratio = arguments.get_number(5u8);
                 self.locale_generator.boolean_boolean(rng, ratio)
             },
 
@@ -209,37 +85,22 @@ impl FakeGenerator {
             // Chrono with arguments
             FakeKeys::CHRONO_DATE_TIME_BEFORE => {
                 // Parse datetime argument or use current time as default
-                let dt = arguments
-                    .and_then(|args| Self::parse_string_arg(args, "").parse::<chrono::DateTime<chrono::Utc>>().ok())
-                    .unwrap_or_else(chrono::Utc::now);
+                let dt = arguments.get_datetime(chrono::Utc::now());
                 self.locale_generator.chrono_date_time_before(rng, dt)
             },
             FakeKeys::CHRONO_DATE_TIME_AFTER => {
                 // Parse datetime argument or use current time as default
-                let dt = arguments
-                    .and_then(|args| Self::parse_string_arg(args, "").parse::<chrono::DateTime<chrono::Utc>>().ok())
-                    .unwrap_or_else(chrono::Utc::now);
+                let dt = arguments.get_datetime(chrono::Utc::now());
                 self.locale_generator.chrono_date_time_after(rng, dt)
             },
             FakeKeys::CHRONO_DATE_TIME_BETWEEN => {
                 // For between, we need two datetime arguments or use defaults
                 let now: DateTime<Utc> = chrono::Utc::now();
-                let past: DateTime<Utc> = now - chrono::Duration::days(365);
-                if let Some(args) = arguments {
-                    let args_content = Self::parse_string_arg(args, "");
-                    if args_content.contains(',') {
-                        let parts: Vec<&str> = args_content.split(',').map(|s| s.trim()).collect();
-                        if parts.len() == 2 {
-                            let start = Self::parse_datetime(parts[0], past);
-                            let end = Self::parse_datetime(parts[1], now);
-
-                            return self.locale_generator.chrono_date_time_between(rng, start, end);
-                        }
-                    }
-                }
+                let (start, end) = arguments
+                    .get_datetime_range(now - chrono::Duration::days(365), now);
 
                 // Default: past year to now
-                self.locale_generator.chrono_date_time_between(rng, past, now)
+                self.locale_generator.chrono_date_time_between(rng, start, end)
             },
 
             // Time
@@ -249,50 +110,21 @@ impl FakeGenerator {
             FakeKeys::TIME_DURATION => self.locale_generator.time_duration(rng),
             // Time with arguments
             FakeKeys::TIME_DATE_TIME_BEFORE => {
-                // Parse datetime argument or use current time as default
-                // Note: time::OffsetDateTime parsing is more complex than chrono
-                // For now, we use current time but this could be enhanced
-                let dt = if let Some(args) = arguments {
-                    let _args_content = Self::parse_string_arg(args, "");
-                    // Could implement parsing here for ISO datetime strings
-                    time::OffsetDateTime::now_utc()
-                } else {
-                    time::OffsetDateTime::now_utc()
-                };
+                let dt = arguments.get_time(time::OffsetDateTime::now_utc());
                 self.locale_generator.time_date_time_before(rng, dt)
             },
             FakeKeys::TIME_DATE_TIME_AFTER => {
-                // Parse datetime argument or use current time as default
-                // Note: time::OffsetDateTime parsing is more complex than chrono
-                // For now, we use current time but this could be enhanced
-                let dt = if let Some(args) = arguments {
-                    let _args_content = Self::parse_string_arg(args, "");
-                    // Could implement parsing here for ISO datetime strings
-                    time::OffsetDateTime::now_utc()
-                } else {
-                    time::OffsetDateTime::now_utc()
-                };
+                let dt = arguments.get_time(time::OffsetDateTime::now_utc());
                 self.locale_generator.time_date_time_after(rng, dt)
             },
             FakeKeys::TIME_DATE_TIME_BETWEEN => {
                 let now = time::OffsetDateTime::now_utc();
-                let past = now - time::Duration::days(365);
 
-                // For between, we need two datetime arguments or use defaults
-                if let Some(args) = arguments {
-                    let args_content = Self::parse_string_arg(args, "");
-                    if args_content.contains(',') {
-                        let parts: Vec<&str> = args_content.split(',').map(|s| s.trim()).collect();
-                        if parts.len() == 2 {
-                            let start = Self::parse_time(parts[0], past);
-                            let end = Self::parse_time(parts[1], now);
+                let (start, end) = arguments
+                    .get_time_range(now - time::Duration::days(365), now);
 
-                            return self.locale_generator.time_date_time_between(rng, start, end);
-                        }
-                    }
-                }
                 // Default: past year to now
-                self.locale_generator.time_date_time_between(rng, past, now)
+                self.locale_generator.time_date_time_between(rng, start, end)
             },
 
             // Credit Card
@@ -323,9 +155,7 @@ impl FakeGenerator {
             FakeKeys::INTERNET_SAFE_EMAIL => self.locale_generator.internet_safe_email(rng),
             FakeKeys::INTERNET_USERNAME => self.locale_generator.internet_username(rng),
             FakeKeys::INTERNET_PASSWORD => {
-                let range = arguments
-                    .map(|args| Self::parse_range(args, 8..16))
-                    .unwrap_or(8..16);
+                let range = arguments.get_number_range(8, 16);
                 self.locale_generator.internet_password(rng, range)
             },
             FakeKeys::INTERNET_I_PV4 => self.locale_generator.internet_i_pv4(rng),
@@ -343,33 +173,23 @@ impl FakeGenerator {
             // Lorem
             FakeKeys::LOREM_WORD => self.locale_generator.lorem_word(rng),
             FakeKeys::LOREM_WORDS => {
-                let count = arguments
-                    .map(|args| Self::parse_range(args, 3..8))
-                    .unwrap_or(3..8);
+                let count = arguments.get_number_range(3, 8);
                 self.locale_generator.lorem_words(rng, count)
             },
             FakeKeys::LOREM_SENTENCE => {
-                let count = arguments
-                    .map(|args| Self::parse_range(args, 4..18))
-                    .unwrap_or(4..18);
+                let count = arguments.get_number_range(4, 18);
                 self.locale_generator.lorem_sentence(rng, count)
             },
             FakeKeys::LOREM_SENTENCES => {
-                let count = arguments
-                    .map(|args| Self::parse_range(args, 2..6))
-                    .unwrap_or(2..6);
+                let count = arguments.get_number_range(2, 6);
                 self.locale_generator.lorem_sentences(rng, count)
             },
             FakeKeys::LOREM_PARAGRAPH => {
-                let count = arguments
-                    .map(|args| Self::parse_range(args, 3..10))
-                    .unwrap_or(3..10);
+                let count = arguments.get_number_range(3, 10);
                 self.locale_generator.lorem_paragraph(rng, count)
             },
             FakeKeys::LOREM_PARAGRAPHS => {
-                let count = arguments
-                    .map(|args| Self::parse_range(args, 2..5))
-                    .unwrap_or(2..5);
+                let count = arguments.get_number_range(2, 5);
                 self.locale_generator.lorem_paragraphs(rng, count)
             },
 
@@ -378,33 +198,23 @@ impl FakeGenerator {
             FakeKeys::MARKDOWN_BOLD_WORD => self.locale_generator.markdown_bold_word(rng),
             FakeKeys::MARKDOWN_LINK => self.locale_generator.markdown_link(rng),
             FakeKeys::MARKDOWN_BULLET_POINTS => {
-                let count = arguments
-                    .map(|args| Self::parse_range(args, 3..8))
-                    .unwrap_or(3..8);
+                let count = arguments.get_number_range(3, 8);
                 self.locale_generator.markdown_bullet_points(rng, count)
             },
             FakeKeys::MARKDOWN_LIST_ITEMS => {
-                let count = arguments
-                    .map(|args| Self::parse_range(args, 3..8))
-                    .unwrap_or(3..8);
+                let count = arguments.get_number_range(3, 8);
                 self.locale_generator.markdown_list_items(rng, count)
             },
             FakeKeys::MARKDOWN_BLOCK_QUOTE_SINGLE_LINE => {
-                let count = arguments
-                    .map(|args| Self::parse_range(args, 4..18))
-                    .unwrap_or(4..18);
+                let count = arguments.get_number_range(4, 18);
                 self.locale_generator.markdown_block_quote_single_line(rng, count)
             },
             FakeKeys::MARKDOWN_BLOCK_QUOTE_MULTI_LINE => {
-                let count = arguments
-                    .map(|args| Self::parse_range(args, 2..6))
-                    .unwrap_or(2..6);
+                let count = arguments.get_number_range(2, 6);
                 self.locale_generator.markdown_block_quote_multi_line(rng, count)
             },
             FakeKeys::MARKDOWN_CODE => {
-                let count = arguments
-                    .map(|args| Self::parse_range(args, 3..8))
-                    .unwrap_or(3..8);
+                let count = arguments.get_number_range(3, 8);
                 self.locale_generator.markdown_code(rng, count)
             },
 
@@ -419,9 +229,7 @@ impl FakeGenerator {
             // Number
             FakeKeys::NUMBER_DIGIT => self.locale_generator.number_digit(rng),
             FakeKeys::NUMBER_NUMBER_WITH_FORMAT => {
-                let format = arguments
-                    .map(|args| Self::parse_string_arg(args, "###-###-####"))
-                    .unwrap_or("###-###-####");
+                let format = arguments.get_string("###-###-####");
                 self.locale_generator.number_number_with_format(rng, format)
             },
 
@@ -902,34 +710,6 @@ mod tests {
 
         let result = generator.generate_by_key("non.existent.key", &mut rng);
         assert_eq!(result, Value::String("non.existent.key".to_string()));
-    }
-
-    #[test]
-    fn test_parse_range_helper() {
-        // Test range parsing with different formats
-        assert_eq!(FakeGenerator::parse_range("(3..8)", 1..2), 3..8);
-        assert_eq!(FakeGenerator::parse_range("(5,10)", 1..2), 5..10);
-        assert_eq!(FakeGenerator::parse_range("(7)", 1..2), 7..8);
-        assert_eq!(FakeGenerator::parse_range("invalid", 1..2), 1..2);
-        assert_eq!(FakeGenerator::parse_range("", 1..2), 1..2);
-    }
-
-    #[test]
-    fn test_parse_single_number_helper() {
-        // Test single number parsing
-        assert_eq!(FakeGenerator::parse_single_number("(42)", 0u8), 42u8);
-        assert_eq!(FakeGenerator::parse_single_number("(100)", 0u16), 100u16);
-        assert_eq!(FakeGenerator::parse_single_number("invalid", 50u8), 50u8);
-        assert_eq!(FakeGenerator::parse_single_number("", 25u8), 25u8);
-    }
-
-    #[test]
-    fn test_parse_string_arg_helper() {
-        // Test string argument parsing
-        assert_eq!(FakeGenerator::parse_string_arg("(###-###-####)", "default"), "###-###-####");
-        assert_eq!(FakeGenerator::parse_string_arg("(custom format)", "default"), "custom format");
-        assert_eq!(FakeGenerator::parse_string_arg("invalid", "default"), "default");
-        assert_eq!(FakeGenerator::parse_string_arg("", "default"), "default");
     }
 
     #[test]
