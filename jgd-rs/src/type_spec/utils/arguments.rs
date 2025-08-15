@@ -21,9 +21,14 @@ impl From<&str> for Arguments {
         };
 
         if parts.len() > 1 {
+            if parts[0].is_empty() && parts[1].is_empty() {
+                return Arguments::None;
+            }
+
             if parts[1].is_empty() {
                 return Arguments::Fixed(parts[0].into());
             }
+
             return Arguments::Range(parts[0].into(), parts[1].into());
         }
 
@@ -177,6 +182,458 @@ impl Arguments {
             Arguments::Fixed(arg) => (Self::parse_datetime(arg, default_start), default_end),
             Arguments::Range(arg1, arg2) =>
                 (Self::parse_datetime(arg1, default_start), Self::parse_datetime(arg2, default_end)),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{DateTime, Utc, NaiveDate};
+
+    #[test]
+    fn test_parse_simple_string() {
+        let args = Arguments::from("lorem");
+        assert!(matches!(args, Arguments::None));
+    }
+
+    #[test]
+    fn test_parse_empty_parentheses() {
+        let args = Arguments::from("()");
+        assert!(matches!(args, Arguments::None));
+    }
+
+    #[test]
+    fn test_parse_single_number() {
+        let args = Arguments::from("(1)");
+        if let Arguments::Fixed(value) = args {
+            assert_eq!(value, "1");
+        } else {
+            panic!("Expected Fixed argument");
+        }
+    }
+
+    #[test]
+    fn test_parse_comma_separated_numbers() {
+        let args = Arguments::from("(1,2)");
+        if let Arguments::Range(start, end) = args {
+            assert_eq!(start, "1");
+            assert_eq!(end, "2");
+        } else {
+            panic!("Expected Range argument");
+        }
+    }
+
+    #[test]
+    fn test_parse_comma_separated_with_spaces() {
+        let args = Arguments::from("(1, 2)");
+        if let Arguments::Range(start, end) = args {
+            assert_eq!(start, "1");
+            assert_eq!(end, "2");
+        } else {
+            panic!("Expected Range argument");
+        }
+    }
+
+    #[test]
+    fn test_parse_large_number() {
+        let args = Arguments::from("(123)");
+        if let Arguments::Fixed(value) = args {
+            assert_eq!(value, "123");
+        } else {
+            panic!("Expected Fixed argument");
+        }
+    }
+
+    #[test]
+    fn test_parse_multiple_comma_separated() {
+        let args = Arguments::from("(123,456,789)");
+        if let Arguments::Range(start, end) = args {
+            assert_eq!(start, "123");
+            assert_eq!(end, "456");
+        } else {
+            panic!("Expected Range argument");
+        }
+    }
+
+    #[test]
+    fn test_parse_range_with_dots() {
+        let args = Arguments::from("(1..2)");
+        if let Arguments::Range(start, end) = args {
+            assert_eq!(start, "1");
+            assert_eq!(end, "2");
+        } else {
+            panic!("Expected Range argument");
+        }
+    }
+
+    #[test]
+    fn test_parse_range_with_dots_and_spaces() {
+        let args = Arguments::from("(1.. 2)");
+        if let Arguments::Range(start, end) = args {
+            assert_eq!(start, "1");
+            assert_eq!(end, "2");
+        } else {
+            panic!("Expected Range argument");
+        }
+    }
+
+    #[test]
+    fn test_parse_range_with_multiple_dots() {
+        let args = Arguments::from("(1..2..3)");
+        if let Arguments::Range(start, end) = args {
+            assert_eq!(start, "1");
+            assert_eq!(end, "2");
+        } else {
+            panic!("Expected Range argument");
+        }
+    }
+
+    #[test]
+    fn test_parse_percentage() {
+        let args = Arguments::from("(75)");
+        if let Arguments::Fixed(value) = args {
+            assert_eq!(value, "75");
+        } else {
+            panic!("Expected Fixed argument");
+        }
+    }
+
+    #[test]
+    fn test_parse_datetime_with_space() {
+        let args = Arguments::from("(2024-01-01 00:00:00)");
+        if let Arguments::Fixed(value) = args {
+            assert_eq!(value, "2024-01-01 00:00:00");
+        } else {
+            panic!("Expected Fixed argument");
+        }
+    }
+
+    #[test]
+    fn test_parse_datetime_iso() {
+        let args = Arguments::from("(2024-12-31T23:59:59)");
+        if let Arguments::Fixed(value) = args {
+            assert_eq!(value, "2024-12-31T23:59:59");
+        } else {
+            panic!("Expected Fixed argument");
+        }
+    }
+
+    #[test]
+    fn test_parse_datetime_range_comma() {
+        let args = Arguments::from("(2024-01-01 00:00:00, 2024-12-31T23:59:59)");
+        if let Arguments::Range(start, end) = args {
+            assert_eq!(start, "2024-01-01 00:00:00");
+            assert_eq!(end, "2024-12-31T23:59:59");
+        } else {
+            panic!("Expected Range argument");
+        }
+    }
+
+    #[test]
+    fn test_parse_datetime_range_dots_with_spaces() {
+        let args = Arguments::from("(2024-01-01 00:00:00.. 2024-12-31T23:59:59)");
+        if let Arguments::Range(start, end) = args {
+            assert_eq!(start, "2024-01-01 00:00:00");
+            assert_eq!(end, "2024-12-31T23:59:59");
+        } else {
+            panic!("Expected Range argument");
+        }
+    }
+
+    #[test]
+    fn test_parse_datetime_range_comma_no_spaces() {
+        let args = Arguments::from("(2024-01-01 00:00:00,2024-12-31T23:59:59)");
+        if let Arguments::Range(start, end) = args {
+            assert_eq!(start, "2024-01-01 00:00:00");
+            assert_eq!(end, "2024-12-31T23:59:59");
+        } else {
+            panic!("Expected Range argument");
+        }
+    }
+
+    #[test]
+    fn test_parse_datetime_range_dots_no_spaces() {
+        let args = Arguments::from("(2024-01-01 00:00:00..2024-12-31T23:59:59)");
+        if let Arguments::Range(start, end) = args {
+            assert_eq!(start, "2024-01-01 00:00:00");
+            assert_eq!(end, "2024-12-31T23:59:59");
+        } else {
+            panic!("Expected Range argument");
+        }
+    }
+
+    #[test]
+    fn test_parse_time_start() {
+        let args = Arguments::from("(00:00:00)");
+        if let Arguments::Fixed(value) = args {
+            assert_eq!(value, "00:00:00");
+        } else {
+            panic!("Expected Fixed argument");
+        }
+    }
+
+    #[test]
+    fn test_parse_time_end() {
+        let args = Arguments::from("(23:59:59)");
+        if let Arguments::Fixed(value) = args {
+            assert_eq!(value, "23:59:59");
+        } else {
+            panic!("Expected Fixed argument");
+        }
+    }
+
+    #[test]
+    fn test_parse_time_range_comma() {
+        let args = Arguments::from("(00:00:00, 23:59:59)");
+        if let Arguments::Range(start, end) = args {
+            assert_eq!(start, "00:00:00");
+            assert_eq!(end, "23:59:59");
+        } else {
+            panic!("Expected Range argument");
+        }
+    }
+
+    #[test]
+    fn test_parse_time_range_dots_with_spaces() {
+        let args = Arguments::from("(00:00:00.. 23:59:59)");
+        if let Arguments::Range(start, end) = args {
+            assert_eq!(start, "00:00:00");
+            assert_eq!(end, "23:59:59");
+        } else {
+            panic!("Expected Range argument");
+        }
+    }
+
+    #[test]
+    fn test_parse_time_range_comma_no_spaces() {
+        let args = Arguments::from("(00:00:00,23:59:59)");
+        if let Arguments::Range(start, end) = args {
+            assert_eq!(start, "00:00:00");
+            assert_eq!(end, "23:59:59");
+        } else {
+            panic!("Expected Range argument");
+        }
+    }
+
+    #[test]
+    fn test_parse_time_range_dots_no_spaces() {
+        let args = Arguments::from("(00:00:00..23:59:59)");
+        if let Arguments::Range(start, end) = args {
+            assert_eq!(start, "00:00:00");
+            assert_eq!(end, "23:59:59");
+        } else {
+            panic!("Expected Range argument");
+        }
+    }
+
+    #[test]
+    fn test_parse_format_string() {
+        let args = Arguments::from("((###) ###-####)");
+        if let Arguments::Fixed(value) = args {
+            assert_eq!(value, "(###) ###-####");
+        } else {
+            panic!("Expected Fixed argument");
+        }
+    }
+
+    // Test getter methods
+    #[test]
+    fn test_get_string_default() {
+        let args = Arguments::None;
+        assert_eq!(args.get_string("default"), "default");
+    }
+
+    #[test]
+    fn test_get_string_fixed() {
+        let args = Arguments::Fixed("test".to_string());
+        assert_eq!(args.get_string("default"), "test");
+    }
+
+    #[test]
+    fn test_get_string_range() {
+        let args = Arguments::Range("start".to_string(), "end".to_string());
+        assert_eq!(args.get_string("default"), "start");
+    }
+
+    #[test]
+    fn test_get_string_tuple_none() {
+        let args = Arguments::None;
+        let (start, end) = args.get_string_tuple("def_start", "def_end");
+        assert_eq!(start, "def_start");
+        assert_eq!(end, "def_end");
+    }
+
+    #[test]
+    fn test_get_string_tuple_fixed() {
+        let args = Arguments::Fixed("value".to_string());
+        let (start, end) = args.get_string_tuple("def_start", "def_end");
+        assert_eq!(start, "value");
+        assert_eq!(end, "def_end");
+    }
+
+    #[test]
+    fn test_get_string_tuple_range() {
+        let args = Arguments::Range("start".to_string(), "end".to_string());
+        let (start, end) = args.get_string_tuple("def_start", "def_end");
+        assert_eq!(start, "start");
+        assert_eq!(end, "end");
+    }
+
+    #[test]
+    fn test_get_number_default() {
+        let args = Arguments::None;
+        assert_eq!(args.get_number(42), 42);
+    }
+
+    #[test]
+    fn test_get_number_fixed() {
+        let args = Arguments::Fixed("123".to_string());
+        assert_eq!(args.get_number(42), 123);
+    }
+
+    #[test]
+    fn test_get_number_fixed_invalid() {
+        let args = Arguments::Fixed("invalid".to_string());
+        assert_eq!(args.get_number(42), 42);
+    }
+
+    #[test]
+    fn test_get_number_range() {
+        let args = Arguments::Range("100".to_string(), "200".to_string());
+        assert_eq!(args.get_number(42), 100);
+    }
+
+    #[test]
+    fn test_get_number_range_invalid() {
+        let args = Arguments::Range("invalid".to_string(), "200".to_string());
+        assert_eq!(args.get_number(42), 42);
+    }
+
+    #[test]
+    fn test_get_number_range_function() {
+        let args = Arguments::None;
+        let range = args.get_number_range(1, 10);
+        assert_eq!(range.start, 1);
+        assert_eq!(range.end, 10);
+    }
+
+    #[test]
+    fn test_get_number_range_function_fixed() {
+        let args = Arguments::Fixed("5".to_string());
+        let range = args.get_number_range(1, 10);
+        assert_eq!(range.start, 5);
+        assert_eq!(range.end, 10);
+    }
+
+    #[test]
+    fn test_get_number_range_function_range() {
+        let args = Arguments::Range("3".to_string(), "7".to_string());
+        let range = args.get_number_range(1, 10);
+        assert_eq!(range.start, 3);
+        assert_eq!(range.end, 7);
+    }
+
+    #[test]
+    fn test_get_datetime_default() {
+        let default_dt = DateTime::parse_from_rfc3339("2020-01-01T00:00:00Z").unwrap().with_timezone(&Utc);
+        let args = Arguments::None;
+        assert_eq!(args.get_datetime(default_dt), default_dt);
+    }
+
+    #[test]
+    fn test_get_datetime_fixed_valid() {
+        let default_dt = DateTime::parse_from_rfc3339("2020-01-01T00:00:00Z").unwrap().with_timezone(&Utc);
+        let expected_dt = DateTime::parse_from_rfc3339("2024-01-01T00:00:00Z").unwrap().with_timezone(&Utc);
+        let args = Arguments::Fixed("2024-01-01T00:00:00Z".to_string());
+        assert_eq!(args.get_datetime(default_dt), expected_dt);
+    }
+
+    #[test]
+    fn test_get_datetime_fixed_space_format() {
+        let default_dt = DateTime::parse_from_rfc3339("2020-01-01T00:00:00Z").unwrap().with_timezone(&Utc);
+        let expected_dt = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap().and_hms_opt(0, 0, 0).unwrap().and_utc();
+        let args = Arguments::Fixed("2024-01-01 00:00:00".to_string());
+        assert_eq!(args.get_datetime(default_dt), expected_dt);
+    }
+
+    #[test]
+    fn test_get_datetime_fixed_invalid() {
+        let default_dt = DateTime::parse_from_rfc3339("2020-01-01T00:00:00Z").unwrap().with_timezone(&Utc);
+        let args = Arguments::Fixed("invalid-date".to_string());
+        assert_eq!(args.get_datetime(default_dt), default_dt);
+    }
+
+    #[test]
+    fn test_get_datetime_range() {
+        let default_start = DateTime::parse_from_rfc3339("2020-01-01T00:00:00Z").unwrap().with_timezone(&Utc);
+        let default_end = DateTime::parse_from_rfc3339("2020-12-31T23:59:59Z").unwrap().with_timezone(&Utc);
+        let expected_start = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap().and_hms_opt(0, 0, 0).unwrap().and_utc();
+        let expected_end = NaiveDate::from_ymd_opt(2024, 12, 31).unwrap().and_hms_opt(23, 59, 59).unwrap().and_utc();
+
+        let args = Arguments::Range("2024-01-01 00:00:00".to_string(), "2024-12-31 23:59:59".to_string());
+        let (start, end) = args.get_datetime_range(default_start, default_end);
+        assert_eq!(start, expected_start);
+        assert_eq!(end, expected_end);
+    }
+
+    #[test]
+    fn test_edge_case_empty_content() {
+        let args = Arguments::from("()");
+        assert!(matches!(args, Arguments::None));
+    }
+
+    #[test]
+    fn test_edge_case_only_comma() {
+        let args = Arguments::from("(,)");
+        match args {
+            Arguments::Range(start, end) => {
+                assert_eq!(start, "");
+                assert_eq!(end, "");
+            },
+            Arguments::Fixed(value) => {
+                assert_eq!(value, "");
+            },
+            Arguments::None => {
+                // Also acceptable
+            }
+        }
+    }
+
+    #[test]
+    fn test_edge_case_only_dots() {
+        let args = Arguments::from("(..)");
+        match args {
+            Arguments::Range(start, end) => {
+                assert_eq!(start, "");
+                assert_eq!(end, "");
+            },
+            Arguments::Fixed(value) => {
+                assert_eq!(value, "");
+            },
+            Arguments::None => {
+                // Also acceptable
+            }
+        }
+    }
+
+    #[test]
+    fn test_edge_case_trailing_comma() {
+        let args = Arguments::from("(123,)");
+        if let Arguments::Fixed(value) = args {
+            assert_eq!(value, "123");
+        } else {
+            panic!("Expected Fixed argument");
+        }
+    }
+
+    #[test]
+    fn test_edge_case_trailing_dots() {
+        let args = Arguments::from("(123..)");
+        if let Arguments::Fixed(value) = args {
+            assert_eq!(value, "123");
+        } else {
+            panic!("Expected Fixed argument");
         }
     }
 }
