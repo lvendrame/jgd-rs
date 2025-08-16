@@ -114,5 +114,7 @@ pub trait JsonGenerator {
     /// # Returns
     ///
     /// A `serde_json::Value` containing the generated data
-    fn generate(&self, config: &mut GeneratorConfig) -> Value;
+    fn generate(&self, config: &mut GeneratorConfig, local_config: Option<&mut LocalConfig>) -> ResultValue;
 }
+
+pub type ResultValue = Result<Value, JgdGeneratorError>;

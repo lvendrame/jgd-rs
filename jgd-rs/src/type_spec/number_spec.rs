@@ -2,7 +2,7 @@ use rand::Rng;
 use serde::Deserialize;
 use serde_json::Value;
 
-use crate::type_spec::JsonGenerator;
+use crate::{type_spec::JsonGenerator, JgdGeneratorError, LocalConfig};
 
 /// A specification for generating random numbers within a specified range.
 ///
@@ -303,11 +303,22 @@ impl JsonGenerator for NumberSpec {
     ///
     /// - Integer generation is slightly faster than floating-point generation
     /// - Range size does not significantly impact generation performance
-    fn generate(&self, config: &mut super::GeneratorConfig) -> Value {
-        if self.integer {
-            Value::from(config.rng.random_range(self.min as i64 ..= self.max as i64))
+    fn generate(&self, config: &mut super::GeneratorConfig, local_config: Option<&mut LocalConfig>
+        ) -> Result<Value, JgdGeneratorError> {
+        let rng = if let Some(local_config) = local_config {
+            if let Some(ref mut rng) = local_config.rng {
+                rng
+            } else {
+                &mut config.rng
+            }
         } else {
-            Value::from(config.rng.random_range(self.min..=self.max))
+            &mut config.rng
+        };
+
+        if self.integer {
+            Ok(Value::from(rng.random_range(self.min as i64 ..= self.max as i64)))
+        } else {
+            Ok(Value::from(rng.random_range(self.min..=self.max)))
         }
     }
 }

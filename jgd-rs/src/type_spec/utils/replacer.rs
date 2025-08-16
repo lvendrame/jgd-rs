@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 use regex::Regex;
 use serde_json::Value;
 
-use crate::type_spec::GeneratorConfig;
+use crate::{type_spec::GeneratorConfig, JgdGeneratorError, LocalConfig};
 
 /// Global regex pattern for matching JGD fake data placeholders.
 ///
@@ -370,14 +370,29 @@ impl ReplacerCollection {
     /// - Full replacement is more efficient as it avoids string manipulation
     /// - Partial replacement processes in reverse order to avoid position shifts
     /// - String conversion is performed for all non-string generated values in partial mode
-    pub fn replace(&self, config: &mut GeneratorConfig) -> Option<Value> {
+    pub fn replace(&self, config: &mut GeneratorConfig, local_config: Option<&mut LocalConfig>
+        ) -> Result<Value, JgdGeneratorError> {
+
+        let (entity_name, field_name) = if let Some(local_config) = local_config {
+            let entity_name = local_config.entity_name.clone();
+            let field_name = local_config.entity_name.clone();
+            (entity_name, field_name)
+        } else {
+            (None, None)
+        };
+
         let mut value = self.value.clone();
         if self.full_replace {
             let replacer = self.get_full_replacer();
             if config.fake_keys.contains_key(&replacer.key) {
-                return Some(config.fake_generator.generate_by_key(&replacer.pattern, &mut config.rng));
+                return Ok(config.fake_generator.generate_by_key(&replacer.pattern, &mut config.rng));
             }
-            return Some(Value::String(value));
+
+            return Err(JgdGeneratorError {
+                message: format!("Error to process the pattern {}", replacer.pattern),
+                entity: entity_name,
+                field: field_name,
+            });
         }
 
         for replacer in self.collection.iter().rev() {
@@ -389,10 +404,16 @@ impl ReplacerCollection {
                     new_value.to_string()
                 };
                 value.replace_range(replacer.start..replacer.end, &new_value);
+            } else {
+               return Err(JgdGeneratorError {
+                    message: format!("Error to process the pattern {}", replacer.pattern),
+                    entity: entity_name,
+                    field: field_name,
+                });
             }
         }
 
-        Some(Value::String(value))
+        Ok(Value::String(value))
     }
 }
 
@@ -534,8 +555,8 @@ mod tests {
         let mut config = create_test_config();
         let collection = ReplacerCollection::new("No replacements here".to_string());
 
-        let result = collection.replace(&mut config);
-        assert!(result.is_some());
+        let result = collection.replace(&mut config, None);
+        assert!(result.is_ok());
 
         match result.unwrap() {
             Value::String(s) => {
@@ -543,13 +564,15 @@ mod tests {
             }
             _ => panic!("Expected a string value"),
         }
-    }    #[test]
+    }
+
+    #[test]
     fn test_replacer_collection_replace_full_with_valid_key() {
         let mut config = create_test_config();
         let collection = ReplacerCollection::new("${name.firstName}".to_string());
 
-        let result = collection.replace(&mut config);
-        assert!(result.is_some());
+        let result = collection.replace(&mut config, None);
+        assert!(result.is_ok());
 
         match result.unwrap() {
             Value::String(s) => {
@@ -566,15 +589,14 @@ mod tests {
         let mut config = create_test_config();
         let collection = ReplacerCollection::new("${invalid.key}".to_string());
 
-        let result = collection.replace(&mut config);
-        assert!(result.is_some());
+        let result = collection.replace(&mut config, None);
+        assert!(result.is_err());
 
-        match result.unwrap() {
-            Value::String(s) => {
-                // Should return the original string since key is invalid
-                assert_eq!(s, "${invalid.key}");
+        match result {
+            Err(error) => {
+                assert_eq!(error.message, "Error to process the pattern invalid.key");
             }
-            _ => panic!("Expected a string value"),
+            _ => panic!("Expected an error"),
         }
     }
 
@@ -585,8 +607,8 @@ mod tests {
             "Hello ${name.firstName} from ${address.cityName}!".to_string()
         );
 
-        let result = collection.replace(&mut config);
-        assert!(result.is_some());
+        let result = collection.replace(&mut config, None);
+        assert!(result.is_ok());
 
         match result.unwrap() {
             Value::String(s) => {
@@ -609,20 +631,14 @@ mod tests {
             "Hello ${name.firstName} and ${invalid.key}!".to_string()
         );
 
-        let result = collection.replace(&mut config);
-        assert!(result.is_some());
+        let result = collection.replace(&mut config, None);
+        assert!(result.is_err());
 
-        match result.unwrap() {
-            Value::String(s) => {
-                // Should start with "Hello " and end with "!"
-                assert!(s.starts_with("Hello "));
-                assert!(s.ends_with("!"));
-                // Should not contain the valid pattern but should contain the invalid one
-                assert!(!s.contains("${name.firstName}"));
-                // Invalid key should remain unchanged
-                assert!(s.contains("${invalid.key}"));
+        match result {
+            Err(error) => {
+                assert_eq!(error.message, "Error to process the pattern invalid.key");
             }
-            _ => panic!("Expected a string value"),
+            _ => panic!("Expected an error"),
         }
     }
 
@@ -631,8 +647,8 @@ mod tests {
         let mut config = create_test_config();
         let collection = ReplacerCollection::new("${lorem.words(5)}".to_string());
 
-        let result = collection.replace(&mut config);
-        assert!(result.is_some());
+        let result = collection.replace(&mut config, None);
+        assert!(result.is_ok());
 
         match result.unwrap() {
             Value::String(s) => {
@@ -656,8 +672,8 @@ mod tests {
             "${name.firstName}_${name.lastName}".to_string()
         );
 
-        let result = collection.replace(&mut config);
-        assert!(result.is_some());
+        let result = collection.replace(&mut config, None);
+        assert!(result.is_ok());
 
         match result.unwrap() {
             Value::String(s) => {
@@ -682,8 +698,8 @@ mod tests {
             "${name.firstName}${name.lastName}".to_string()
         );
 
-        let result = collection.replace(&mut config);
-        assert!(result.is_some());
+        let result = collection.replace(&mut config, None);
+        assert!(result.is_ok());
 
         match result.unwrap() {
             Value::String(s) => {

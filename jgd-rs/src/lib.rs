@@ -8,12 +8,12 @@ mod type_spec;
 mod fake;
 mod locales_keys;
 
-pub fn generate_jgd_from_str(value: &str) -> Value {
+pub fn generate_jgd_from_str(value: &str) -> Result<Value, JgdGeneratorError> {
     Jgd::from(value)
         .generate()
 }
 
-pub fn generate_jgd_from_file(path: &PathBuf) -> Value {
+pub fn generate_jgd_from_file(path: &PathBuf) -> Result<Value, JgdGeneratorError> {
     Jgd::from_file(path)
         .generate()
 }

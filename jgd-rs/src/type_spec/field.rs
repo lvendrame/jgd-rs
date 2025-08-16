@@ -21,7 +21,7 @@
 use indexmap::IndexMap;
 use serde::Deserialize;
 use serde_json::Value;
-use crate::type_spec::{ArraySpec, Entity, GeneratorConfig, JsonGenerator, NumberSpec, OptionalSpec, ReplacerCollection};
+use crate::{type_spec::{ArraySpec, Entity, GeneratorConfig, JsonGenerator, NumberSpec, OptionalSpec, ReplacerCollection}, JgdGeneratorError, LocalConfig};
 
 /// A field specification that can generate any JSON value type.
 ///
@@ -185,14 +185,27 @@ impl Field {
     /// let id_ref = Field::Ref { r#ref: "users.0.id".to_string() };
     /// let user_id = id_ref.generate_for_ref("users.0.id", &mut config);
     /// ```
-    fn generate_for_ref(&self, r#ref: &str, config: &mut GeneratorConfig) -> Value {
+    fn generate_for_ref(&self, r#ref: &str, config: &mut GeneratorConfig, local_config: Option<&mut LocalConfig>
+        ) -> Result<Value, JgdGeneratorError> {
         let value = config.get_value_from_path(r#ref.to_string());
 
         if let Some(value) = value {
-            return value.clone();
+            return Ok(value.clone());
         }
 
-        Value::String(format!("The path {} is not found", r#ref))
+        let (entity_name, field_name) = if let Some(local_config) = local_config {
+            let entity_name = local_config.entity_name.clone();
+            let field_name = local_config.entity_name.clone();
+            (entity_name, field_name)
+        } else {
+            (None, None)
+        };
+
+        Err(JgdGeneratorError {
+            message: format!("The path {} is not found", r#ref),
+            entity: entity_name,
+            field: field_name,
+        })
     }
 }
 
@@ -239,19 +252,20 @@ impl JsonGenerator for Field {
     /// let result = number_field.generate(&mut config);
     /// // Result: Value::Number(42)
     /// ```
-    fn generate(&self, config: &mut GeneratorConfig) -> serde_json::Value {
+    fn generate(&self, config: &mut super::GeneratorConfig, local_config: Option<&mut LocalConfig>
+        ) -> Result<Value, JgdGeneratorError> {
         match self {
             // Field::Object { object } => object.generate(config),
-            Field::Array { array } => array.generate(config),
-            Field::Entity(entity) => entity.generate(config),
-            Field::Number { number } => number.generate(config),
-            Field::Optional { optional } => optional.generate(config),
-            Field::Ref { r#ref } => self.generate_for_ref(r#ref, config),
-            Field::Str(value) => value.generate(config),
-            Field::Bool(value) => Value::Bool(*value),
-            Field::I64(value) => Value::Number(serde_json::Number::from(*value)),
-            Field::F64(value) => Value::Number(serde_json::Number::from_f64(*value).unwrap()),
-            Field::Null => Value::Null,
+            Field::Array { array } => array.generate(config, local_config),
+            Field::Entity(entity) => entity.generate(config, local_config),
+            Field::Number { number } => number.generate(config, local_config),
+            Field::Optional { optional } => optional.generate(config, local_config),
+            Field::Ref { r#ref } => self.generate_for_ref(r#ref, config, local_config),
+            Field::Str(value) => value.generate(config, local_config),
+            Field::Bool(value) => Ok(Value::Bool(*value)),
+            Field::I64(value) => Ok(Value::Number(serde_json::Number::from(*value))),
+            Field::F64(value) => Ok(Value::Number(serde_json::Number::from_f64(*value).unwrap())),
+            Field::Null => Ok(Value::Null),
         }
     }
 }
@@ -294,13 +308,19 @@ impl JsonGenerator for IndexMap<String, Field> {
     /// - Entity field generation for creating object structures
     /// - Root-level object generation in JGD schemas
     /// - Nested object creation within complex field hierarchies
-    fn generate(&self, config: &mut GeneratorConfig) -> Value {
-       let mut map = serde_json::Map::new();
+    fn generate(&self, config: &mut super::GeneratorConfig, local_config: Option<&mut LocalConfig>
+        ) -> Result<Value, JgdGeneratorError> {
+
+        let mut local_config = LocalConfig::from_current_with_config(None, 0, local_config);
+
+        let mut map = serde_json::Map::new();
         for (key, field) in self {
-            map.insert(key.clone(), field.generate(config));
+            local_config.field_name = Some(key.clone());
+            let generated = field.generate(config, Some(&mut local_config))?;
+            map.insert(key.clone(), generated);
         }
 
-        Value::Object(map)
+        Ok(Value::Object(map))
     }
 }
 
@@ -355,16 +375,16 @@ impl JsonGenerator for String {
     /// If replacement fails for any reason, the method gracefully falls back to
     /// returning the original string value, ensuring generation never fails due
     /// to template processing errors.
-    fn generate(&self, config: &mut GeneratorConfig) -> Value {
+    fn generate(&self, config: &mut super::GeneratorConfig, local_config: Option<&mut LocalConfig>
+        ) -> Result<Value, JgdGeneratorError> {
+
         let value = self.to_string();
         let replacers = ReplacerCollection::new(value.clone());
         if replacers.is_empty() {
-            return Value::String(value);
+            return Ok(Value::String(value));
         }
 
-        replacers.replace(config).unwrap_or(
-            Value::String(value)
-        )
+        replacers.replace(config, local_config)
     }
 }
 
@@ -383,8 +403,12 @@ mod tests {
         let mut config = create_test_config(Some(42));
         let field = Field::Str("Hello World".to_string());
 
-        let result = field.generate(&mut config);
-        assert_eq!(result, Value::String("Hello World".to_string()));
+        let result = field.generate(&mut config, None);
+        assert!(result.is_ok());
+
+        if let Ok(result) = result {
+            assert_eq!(result, Value::String("Hello World".to_string()));
+        }
     }
 
     #[test]
@@ -392,8 +416,12 @@ mod tests {
         let mut config = create_test_config(Some(42));
         let field = Field::Bool(true);
 
-        let result = field.generate(&mut config);
-        assert_eq!(result, Value::Bool(true));
+        let result = field.generate(&mut config, None);
+        assert!(result.is_ok());
+
+        if let Ok(result) = result {
+            assert_eq!(result, Value::Bool(true));
+        }
     }
 
     #[test]
@@ -401,8 +429,12 @@ mod tests {
         let mut config = create_test_config(Some(42));
         let field = Field::Bool(false);
 
-        let result = field.generate(&mut config);
-        assert_eq!(result, Value::Bool(false));
+        let result = field.generate(&mut config, None);
+        assert!(result.is_ok());
+
+        if let Ok(result) = result {
+            assert_eq!(result, Value::Bool(false));
+        }
     }
 
     #[test]
@@ -410,8 +442,12 @@ mod tests {
         let mut config = create_test_config(Some(42));
         let field = Field::I64(12345);
 
-        let result = field.generate(&mut config);
-        assert_eq!(result, Value::Number(serde_json::Number::from(12345)));
+        let result = field.generate(&mut config, None);
+        assert!(result.is_ok());
+
+        if let Ok(result) = result {
+            assert_eq!(result, Value::Number(serde_json::Number::from(12345)));
+        }
     }
 
     #[test]
@@ -419,11 +455,15 @@ mod tests {
         let mut config = create_test_config(Some(42));
         let field = Field::F64(123.45);
 
-        let result = field.generate(&mut config);
-        if let Value::Number(num) = result {
-            assert_eq!(num.as_f64(), Some(123.45));
-        } else {
-            panic!("Expected number value");
+        let result = field.generate(&mut config, None);
+        assert!(result.is_ok());
+
+        if let Ok(result) = result {
+            if let Value::Number(num) = result {
+                assert_eq!(num.as_f64(), Some(123.45));
+            } else {
+                panic!("Expected number value");
+            }
         }
     }
 
@@ -432,8 +472,12 @@ mod tests {
         let mut config = create_test_config(Some(42));
         let field = Field::Null;
 
-        let result = field.generate(&mut config);
-        assert_eq!(result, Value::Null);
+        let result = field.generate(&mut config, None);
+        assert!(result.is_ok());
+
+        if let Ok(result) = result {
+            assert_eq!(result, Value::Null);
+        }
     }
 
     #[test]
@@ -442,12 +486,16 @@ mod tests {
         let number_spec = NumberSpec::new_integer(1.0, 10.0);
         let field = Field::Number { number: number_spec };
 
-        let result = field.generate(&mut config);
-        assert!(result.is_number());
+        let result = field.generate(&mut config, None);
+        assert!(result.is_ok());
 
-        if let Value::Number(num) = result {
-            let value = num.as_i64().unwrap();
-            assert!((1..=10).contains(&value));
+        if let Ok(result) = result {
+            assert!(result.is_number());
+
+            if let Value::Number(num) = result {
+                let value = num.as_i64().unwrap();
+                assert!((1..=10).contains(&value));
+            }
         }
     }
 
@@ -460,13 +508,17 @@ mod tests {
         };
         let field = Field::Array { array: array_spec };
 
-        let result = field.generate(&mut config);
-        assert!(result.is_array());
+        let result = field.generate(&mut config, None);
+        assert!(result.is_ok());
 
-        if let Value::Array(arr) = result {
-            assert_eq!(arr.len(), 3);
-            for item in arr {
-                assert_eq!(item, Value::String("test".to_string()));
+        if let Ok(result) = result {
+            assert!(result.is_array());
+
+            if let Value::Array(arr) = result {
+                assert_eq!(arr.len(), 3);
+                for item in arr {
+                    assert_eq!(item, Value::String("test".to_string()));
+                }
             }
         }
     }
@@ -482,9 +534,12 @@ mod tests {
         }));
 
         let field = Field::Ref { r#ref: "users.name".to_string() };
-        let result = field.generate(&mut config);
+        let result = field.generate(&mut config, None);
+        assert!(result.is_ok());
 
-        assert_eq!(result, Value::String("John Doe".to_string()));
+        if let Ok(result) = result {
+            assert_eq!(result, Value::String("John Doe".to_string()));
+        }
     }
 
     #[test]
@@ -492,8 +547,12 @@ mod tests {
         let mut config = create_test_config(Some(42));
         let field = Field::Ref { r#ref: "nonexistent.path".to_string() };
 
-        let result = field.generate(&mut config);
-        assert_eq!(result, Value::String("The path nonexistent.path is not found".to_string()));
+        let result = field.generate(&mut config, None);
+        assert!(result.is_err());
+
+        if let Err(error) = result {
+            assert_eq!(error.message, "The path nonexistent.path is not found".to_string());
+        }
     }
 
     #[test]
@@ -512,12 +571,15 @@ mod tests {
         };
 
         let field = Field::Entity(entity);
-        let result = field.generate(&mut config);
+        let result = field.generate(&mut config, None);
+        assert!(result.is_ok());
 
-        assert!(result.is_object());
-        if let Value::Object(obj) = result {
-            assert_eq!(obj.get("name"), Some(&Value::String("Test User".to_string())));
-            assert_eq!(obj.get("age"), Some(&Value::Number(serde_json::Number::from(25))));
+        if let Ok(result) = result {
+            assert!(result.is_object());
+            if let Value::Object(obj) = result {
+                assert_eq!(obj.get("name"), Some(&Value::String("Test User".to_string())));
+                assert_eq!(obj.get("age"), Some(&Value::Number(serde_json::Number::from(25))));
+            }
         }
     }
 
@@ -531,18 +593,21 @@ mod tests {
         fields.insert("bool_field".to_string(), Field::Bool(true));
         fields.insert("null_field".to_string(), Field::Null);
 
-        let result = fields.generate(&mut config);
+        let result = fields.generate(&mut config, None);
+        assert!(result.is_ok());
 
-        assert!(result.is_object());
-        if let Value::Object(obj) = result {
-            assert_eq!(obj.get("string_field"), Some(&Value::String("Hello".to_string())));
-            assert_eq!(obj.get("number_field"), Some(&Value::Number(serde_json::Number::from(42))));
-            assert_eq!(obj.get("bool_field"), Some(&Value::Bool(true)));
-            assert_eq!(obj.get("null_field"), Some(&Value::Null));
+        if let Ok(result) = result {
+            assert!(result.is_object());
+            if let Value::Object(obj) = result {
+                assert_eq!(obj.get("string_field"), Some(&Value::String("Hello".to_string())));
+                assert_eq!(obj.get("number_field"), Some(&Value::Number(serde_json::Number::from(42))));
+                assert_eq!(obj.get("bool_field"), Some(&Value::Bool(true)));
+                assert_eq!(obj.get("null_field"), Some(&Value::Null));
 
-            // Verify ordering is preserved (IndexMap maintains insertion order)
-            let keys: Vec<&String> = obj.keys().collect();
-            assert_eq!(keys, vec!["string_field", "number_field", "bool_field", "null_field"]);
+                // Verify ordering is preserved (IndexMap maintains insertion order)
+                let keys: Vec<&String> = obj.keys().collect();
+                assert_eq!(keys, vec!["string_field", "number_field", "bool_field", "null_field"]);
+            }
         }
     }
 
@@ -551,11 +616,14 @@ mod tests {
         let mut config = create_test_config(Some(42));
         let fields: IndexMap<String, Field> = IndexMap::new();
 
-        let result = fields.generate(&mut config);
+        let result = fields.generate(&mut config, None);
+        assert!(result.is_ok());
 
-        assert!(result.is_object());
-        if let Value::Object(obj) = result {
-            assert!(obj.is_empty());
+        if let Ok(result) = result {
+            assert!(result.is_object());
+            if let Value::Object(obj) = result {
+                assert!(obj.is_empty());
+            }
         }
     }
 
@@ -563,18 +631,32 @@ mod tests {
     fn test_string_template_processing() {
         let mut config = create_test_config(Some(42));
 
-        // Set up reference data for template
-        config.gen_value.insert("user".to_string(), json!({
-            "name": "Alice"
-        }));
+        let template = "Hello ${name.name}!".to_string();
+        let result = template.generate(&mut config, None);
+        assert!(result.is_ok());
 
-        let template = "Hello ${user.name}!".to_string();
-        let result = template.generate(&mut config);
+        if let Ok(result) = result {
+            // The result should either be the template with replacement or the original string
+            // Since we can't control the exact replacement logic in this test,
+            // we verify it's still a string
+            assert!(result.is_string());
+        }
+    }
 
-        // The result should either be the template with replacement or the original string
-        // Since we can't control the exact replacement logic in this test,
-        // we verify it's still a string
-        assert!(result.is_string());
+    #[test]
+    fn test_string_invalid_template_error() {
+        let mut config = create_test_config(Some(42));
+
+        let template = "Hello ${invalid.key}!".to_string();
+        let result = template.generate(&mut config, None);
+        assert!(result.is_err());
+
+        if let Err(error) = result {
+            // The result should either be the template with replacement or the original string
+            // Since we can't control the exact replacement logic in this test,
+            // we verify it's still a string
+            assert_eq!(error.message, "Error to process the pattern invalid.key".to_string());
+        }
     }
 
     #[test]
@@ -582,8 +664,12 @@ mod tests {
         let mut config = create_test_config(Some(42));
         let simple_string = "No placeholders here".to_string();
 
-        let result = simple_string.generate(&mut config);
-        assert_eq!(result, Value::String("No placeholders here".to_string()));
+        let result = simple_string.generate(&mut config, None);
+        assert!(result.is_ok());
+
+        if let Ok(result) = result {
+            assert_eq!(result, Value::String("No placeholders here".to_string()));
+        }
     }
 
     #[test]
@@ -627,18 +713,21 @@ mod tests {
         outer_fields.insert("nested".to_string(), Field::Entity(inner_entity));
         outer_fields.insert("simple".to_string(), Field::Str("outer_value".to_string()));
 
-        let result = outer_fields.generate(&mut config);
+        let result = outer_fields.generate(&mut config, None);
+        assert!(result.is_ok());
 
-        assert!(result.is_object());
-        if let Value::Object(outer_obj) = result {
-            assert!(outer_obj.contains_key("nested"));
-            assert!(outer_obj.contains_key("simple"));
+        if let Ok(result) = result {
+            assert!(result.is_object());
+            if let Value::Object(outer_obj) = result {
+                assert!(outer_obj.contains_key("nested"));
+                assert!(outer_obj.contains_key("simple"));
 
-            if let Some(Value::Object(inner_obj)) = outer_obj.get("nested") {
-                assert_eq!(inner_obj.get("inner_str"), Some(&Value::String("inner_value".to_string())));
-                assert_eq!(inner_obj.get("inner_num"), Some(&Value::Number(serde_json::Number::from(99))));
-            } else {
-                panic!("Expected nested object");
+                if let Some(Value::Object(inner_obj)) = outer_obj.get("nested") {
+                    assert_eq!(inner_obj.get("inner_str"), Some(&Value::String("inner_value".to_string())));
+                    assert_eq!(inner_obj.get("inner_num"), Some(&Value::Number(serde_json::Number::from(99))));
+                } else {
+                    panic!("Expected nested object");
+                }
             }
         }
     }
@@ -646,6 +735,10 @@ mod tests {
     #[test]
     fn test_field_variants_coverage() {
         let mut config = create_test_config(Some(42));
+
+        config.gen_value.insert("test".to_string(), json!({
+            "path": "found"
+        }));
 
         // Test all field variants to ensure they can be created and generate values
         let variants = vec![
@@ -659,9 +752,14 @@ mod tests {
         ];
 
         for field in variants {
-            let result = field.generate(&mut config);
-            // Each field should generate some valid JSON value
-            assert!(result.is_string() || result.is_number() || result.is_boolean() || result.is_null());
+            let result = field.generate(&mut config, None);
+
+            assert!(result.is_ok());
+
+            if let Ok(result) = result {
+                // Each field should generate some valid JSON value
+                assert!(result.is_string() || result.is_number() || result.is_boolean() || result.is_null());
+            }
         }
     }
 }

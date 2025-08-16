@@ -1,12 +1,8 @@
 use chrono::{DateTime, Utc};
 use rand::rngs::StdRng;
-use regex::Regex;
 use serde_json::Value;
-use std::sync::LazyLock;
 
-use crate::{fake::{fake_keys::FakeKeys, fake_locale_generator::{FakeGeneratorArSa, FakeGeneratorCyGb, FakeGeneratorDeDe, FakeGeneratorEn, FakeGeneratorFrFr, FakeGeneratorItIt, FakeGeneratorJaJp, FakeGeneratorPtBr, FakeLocaleGenerator}}, locales_keys::LocalesKeys, Arguments};
-
-static RE_KEY: LazyLock<regex::Regex> = LazyLock::new(|| Regex::new(r"([^(]+)(\(.+\))?").unwrap());
+use crate::{fake::{fake_keys::FakeKeys, fake_locale_generator::{FakeGeneratorArSa, FakeGeneratorCyGb, FakeGeneratorDeDe, FakeGeneratorEn, FakeGeneratorFrFr, FakeGeneratorItIt, FakeGeneratorJaJp, FakeGeneratorPtBr, FakeLocaleGenerator}}, locales_keys::LocalesKeys, KeyParser};
 
 pub struct FakeGenerator {
     locale_generator: Box<dyn FakeLocaleGenerator>
@@ -30,11 +26,8 @@ impl FakeGenerator {
     }
 
     pub fn generate_by_key(&self, pattern: &str, rng: &mut StdRng) -> Value {
-        let captures = RE_KEY.captures(pattern).unwrap();
-        let key = captures.get(1).unwrap().as_str();
-        let arguments = captures.get(2).map(|m| m.as_str());
-        let arguments = Arguments::from(arguments.unwrap_or(""));
-        match key {
+        let key_parser = KeyParser::from(pattern);
+        match key_parser.key.as_str() {
             // Address
             FakeKeys::ADDRESS_CITY_PREFIX => self.locale_generator.address_city_prefix(rng),
             FakeKeys::ADDRESS_CITY_SUFFIX => self.locale_generator.address_city_suffix(rng),
@@ -54,7 +47,7 @@ impl FakeGenerator {
             FakeKeys::ADDRESS_LATITUDE => self.locale_generator.address_latitude(rng),
             FakeKeys::ADDRESS_LONGITUDE => self.locale_generator.address_longitude(rng),
             FakeKeys::ADDRESS_GEOHASH => {
-                let precision = arguments.get_number(5u8);
+                let precision = key_parser.arguments.get_number(5u8);
                 self.locale_generator.address_geohash(rng, precision)
             },
 
@@ -65,7 +58,7 @@ impl FakeGenerator {
 
             // Boolean
             FakeKeys::BOOLEAN_BOOLEAN => {
-                let ratio = arguments.get_number(5u8);
+                let ratio = key_parser.arguments.get_number(5u8);
                 self.locale_generator.boolean_boolean(rng, ratio)
             },
 
@@ -85,18 +78,18 @@ impl FakeGenerator {
             // Chrono with arguments
             FakeKeys::CHRONO_DATE_TIME_BEFORE => {
                 // Parse datetime argument or use current time as default
-                let dt = arguments.get_datetime(chrono::Utc::now());
+                let dt = key_parser.arguments.get_datetime(chrono::Utc::now());
                 self.locale_generator.chrono_date_time_before(rng, dt)
             },
             FakeKeys::CHRONO_DATE_TIME_AFTER => {
                 // Parse datetime argument or use current time as default
-                let dt = arguments.get_datetime(chrono::Utc::now());
+                let dt = key_parser.arguments.get_datetime(chrono::Utc::now());
                 self.locale_generator.chrono_date_time_after(rng, dt)
             },
             FakeKeys::CHRONO_DATE_TIME_BETWEEN => {
                 // For between, we need two datetime arguments or use defaults
                 let now: DateTime<Utc> = chrono::Utc::now();
-                let (start, end) = arguments
+                let (start, end) = key_parser.arguments
                     .get_datetime_range(now - chrono::Duration::days(365), now);
 
                 // Default: past year to now
@@ -110,17 +103,17 @@ impl FakeGenerator {
             FakeKeys::TIME_DURATION => self.locale_generator.time_duration(rng),
             // Time with arguments
             FakeKeys::TIME_DATE_TIME_BEFORE => {
-                let dt = arguments.get_time(time::OffsetDateTime::now_utc());
+                let dt = key_parser.arguments.get_time(time::OffsetDateTime::now_utc());
                 self.locale_generator.time_date_time_before(rng, dt)
             },
             FakeKeys::TIME_DATE_TIME_AFTER => {
-                let dt = arguments.get_time(time::OffsetDateTime::now_utc());
+                let dt = key_parser.arguments.get_time(time::OffsetDateTime::now_utc());
                 self.locale_generator.time_date_time_after(rng, dt)
             },
             FakeKeys::TIME_DATE_TIME_BETWEEN => {
                 let now = time::OffsetDateTime::now_utc();
 
-                let (start, end) = arguments
+                let (start, end) = key_parser.arguments
                     .get_time_range(now - time::Duration::days(365), now);
 
                 // Default: past year to now
@@ -155,7 +148,7 @@ impl FakeGenerator {
             FakeKeys::INTERNET_SAFE_EMAIL => self.locale_generator.internet_safe_email(rng),
             FakeKeys::INTERNET_USERNAME => self.locale_generator.internet_username(rng),
             FakeKeys::INTERNET_PASSWORD => {
-                let range = arguments.get_number_range(8, 16);
+                let range = key_parser.arguments.get_number_range(8, 16);
                 self.locale_generator.internet_password(rng, range)
             },
             FakeKeys::INTERNET_I_PV4 => self.locale_generator.internet_i_pv4(rng),
@@ -173,23 +166,23 @@ impl FakeGenerator {
             // Lorem
             FakeKeys::LOREM_WORD => self.locale_generator.lorem_word(rng),
             FakeKeys::LOREM_WORDS => {
-                let count = arguments.get_number_range(3, 8);
+                let count = key_parser.arguments.get_number_range(3, 8);
                 self.locale_generator.lorem_words(rng, count)
             },
             FakeKeys::LOREM_SENTENCE => {
-                let count = arguments.get_number_range(4, 18);
+                let count = key_parser.arguments.get_number_range(4, 18);
                 self.locale_generator.lorem_sentence(rng, count)
             },
             FakeKeys::LOREM_SENTENCES => {
-                let count = arguments.get_number_range(2, 6);
+                let count = key_parser.arguments.get_number_range(2, 6);
                 self.locale_generator.lorem_sentences(rng, count)
             },
             FakeKeys::LOREM_PARAGRAPH => {
-                let count = arguments.get_number_range(3, 10);
+                let count = key_parser.arguments.get_number_range(3, 10);
                 self.locale_generator.lorem_paragraph(rng, count)
             },
             FakeKeys::LOREM_PARAGRAPHS => {
-                let count = arguments.get_number_range(2, 5);
+                let count = key_parser.arguments.get_number_range(2, 5);
                 self.locale_generator.lorem_paragraphs(rng, count)
             },
 
@@ -198,23 +191,23 @@ impl FakeGenerator {
             FakeKeys::MARKDOWN_BOLD_WORD => self.locale_generator.markdown_bold_word(rng),
             FakeKeys::MARKDOWN_LINK => self.locale_generator.markdown_link(rng),
             FakeKeys::MARKDOWN_BULLET_POINTS => {
-                let count = arguments.get_number_range(3, 8);
+                let count = key_parser.arguments.get_number_range(3, 8);
                 self.locale_generator.markdown_bullet_points(rng, count)
             },
             FakeKeys::MARKDOWN_LIST_ITEMS => {
-                let count = arguments.get_number_range(3, 8);
+                let count = key_parser.arguments.get_number_range(3, 8);
                 self.locale_generator.markdown_list_items(rng, count)
             },
             FakeKeys::MARKDOWN_BLOCK_QUOTE_SINGLE_LINE => {
-                let count = arguments.get_number_range(4, 18);
+                let count = key_parser.arguments.get_number_range(4, 18);
                 self.locale_generator.markdown_block_quote_single_line(rng, count)
             },
             FakeKeys::MARKDOWN_BLOCK_QUOTE_MULTI_LINE => {
-                let count = arguments.get_number_range(2, 6);
+                let count = key_parser.arguments.get_number_range(2, 6);
                 self.locale_generator.markdown_block_quote_multi_line(rng, count)
             },
             FakeKeys::MARKDOWN_CODE => {
-                let count = arguments.get_number_range(3, 8);
+                let count = key_parser.arguments.get_number_range(3, 8);
                 self.locale_generator.markdown_code(rng, count)
             },
 
@@ -229,7 +222,7 @@ impl FakeGenerator {
             // Number
             FakeKeys::NUMBER_DIGIT => self.locale_generator.number_digit(rng),
             FakeKeys::NUMBER_NUMBER_WITH_FORMAT => {
-                let format = arguments.get_string("###-###-####");
+                let format = key_parser.arguments.get_string("###-###-####");
                 self.locale_generator.number_number_with_format(rng, format)
             },
 

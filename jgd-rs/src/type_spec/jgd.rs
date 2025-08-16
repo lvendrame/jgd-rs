@@ -91,7 +91,7 @@ use std::{fs, path::PathBuf, sync::{LazyLock, Mutex}};
 use indexmap::IndexMap;
 use serde::Deserialize;
 use serde_json::Value;
-use crate::{type_spec::{Entity, GeneratorConfig, JsonGenerator}, CustomKeyFunction, JgdGlobalConfig};
+use crate::{type_spec::{Entity, GeneratorConfig, JsonGenerator}, CustomKeyFunction, JgdGeneratorError, JgdGlobalConfig};
 
 /// Default locale for data generation when no locale is specified.
 fn default_locale() -> String {
@@ -327,18 +327,18 @@ impl Jgd {
     /// let result = jgd.generate();
     /// // Returns: {"users": {"name": "Alice"}, "posts": {"title": "Post"}}
     /// ```
-    pub fn generate(&self) -> Value {
+    pub fn generate(&self) -> Result<Value, JgdGeneratorError> {
         let mut config = self.create_config();
 
         if let Some(root) = &self.root {
-            return root.generate(&mut config);
+            return root.generate(&mut config, None);
         }
 
         if let Some(entities) = &self.entities {
-            return entities.generate(&mut config);
+            return entities.generate(&mut config, None);
         }
 
-        Value::Null
+        Ok(Value::Null)
     }
 
     /// Adds a custom key function to the global configuration.
@@ -516,7 +516,6 @@ mod tests {
     use crate::Arguments;
 
     use super::*;
-    use serde::de::value;
     use serde_json::json;
 
     #[test]
@@ -678,12 +677,17 @@ mod tests {
 
         let result = jgd.generate();
 
-        assert!(result.is_object());
-        if let Value::Object(obj) = result {
-            assert_eq!(obj.get("name"), Some(&Value::String("John Doe".to_string())));
-            assert_eq!(obj.get("age"), Some(&Value::Number(serde_json::Number::from(30))));
-            assert_eq!(obj.get("active"), Some(&Value::Bool(true)));
+        assert!(result.is_ok());
+
+        if let Ok(result) = result {
+            assert!(result.is_object());
+            if let Value::Object(obj) = result {
+                assert_eq!(obj.get("name"), Some(&Value::String("John Doe".to_string())));
+                assert_eq!(obj.get("age"), Some(&Value::Number(serde_json::Number::from(30))));
+                assert_eq!(obj.get("active"), Some(&Value::Bool(true)));
+            }
         }
+
     }
 
     #[test]
@@ -708,19 +712,23 @@ mod tests {
 
         let result = jgd.generate();
 
-        assert!(result.is_object());
-        if let Value::Object(obj) = result {
-            assert!(obj.contains_key("users"));
-            assert!(obj.contains_key("products"));
+        assert!(result.is_ok());
 
-            // Check users entity
-            if let Some(Value::Object(users)) = obj.get("users") {
-                assert_eq!(users.get("name"), Some(&Value::String("Alice".to_string())));
-            }
+        if let Ok(result) = result {
+            assert!(result.is_object());
+            if let Value::Object(obj) = result {
+                assert!(obj.contains_key("users"));
+                assert!(obj.contains_key("products"));
 
-            // Check products entity
-            if let Some(Value::Object(products)) = obj.get("products") {
-                assert_eq!(products.get("title"), Some(&Value::String("Product A".to_string())));
+                // Check users entity
+                if let Some(Value::Object(users)) = obj.get("users") {
+                    assert_eq!(users.get("name"), Some(&Value::String("Alice".to_string())));
+                }
+
+                // Check products entity
+                if let Some(Value::Object(products)) = obj.get("products") {
+                    assert_eq!(products.get("title"), Some(&Value::String("Product A".to_string())));
+                }
             }
         }
     }
@@ -733,7 +741,12 @@ mod tests {
         }"#);
 
         let result = jgd.generate();
-        assert_eq!(result, Value::Null);
+
+        assert!(result.is_ok());
+
+        if let Ok(result) = result {
+            assert_eq!(result, Value::Null);
+        }
     }
 
     #[test]
@@ -761,8 +774,15 @@ mod tests {
         let result1 = jgd1.generate();
         let result2 = jgd2.generate();
 
-        // With same seed, results should be identical
-        assert_eq!(result1, result2);
+        assert!(result1.is_ok());
+        assert!(result2.is_ok());
+
+        if let Ok(result1) = result1 {
+            if let Ok(result2) = result2 {
+                // With same seed, results should be identical
+                assert_eq!(result1, result2);
+            }
+        }
     }
 
     #[test]
@@ -790,8 +810,15 @@ mod tests {
         let result1 = jgd1.generate();
         let result2 = jgd2.generate();
 
-        // Different seeds should produce different results (with high probability)
-        assert_ne!(result1, result2);
+        assert!(result1.is_ok());
+        assert!(result2.is_ok());
+
+        if let Ok(result1) = result1 {
+            if let Ok(result2) = result2 {
+                // Different seeds should produce different results (with high probability)
+                assert_ne!(result1, result2);
+            }
+        }
     }
 
     #[test]
@@ -835,16 +862,20 @@ mod tests {
 
         let result = jgd.generate();
 
-        assert!(result.is_array());
-        if let Value::Array(arr) = result {
-            assert_eq!(arr.len(), 2);
+        assert!(result.is_ok());
 
-            for item in &arr {
-                assert!(item.is_object());
-                if let Value::Object(obj) = item {
-                    assert!(obj.contains_key("id"));
-                    assert!(obj.contains_key("name"));
-                    assert_eq!(obj.get("name"), Some(&Value::String("Test Item".to_string())));
+        if let Ok(result) = result {
+        assert!(result.is_array());
+            if let Value::Array(arr) = result {
+                assert_eq!(arr.len(), 2);
+
+                for item in &arr {
+                    assert!(item.is_object());
+                    if let Value::Object(obj) = item {
+                        assert!(obj.contains_key("id"));
+                        assert!(obj.contains_key("name"));
+                        assert_eq!(obj.get("name"), Some(&Value::String("Test Item".to_string())));
+                    }
                 }
             }
         }
@@ -876,15 +907,19 @@ mod tests {
 
         let result = jgd.generate();
 
-        assert!(result.is_object());
-        if let Value::Object(obj) = result {
-            assert!(obj.contains_key("users"));
-            assert!(obj.contains_key("posts"));
+        assert!(result.is_ok());
 
-            // Verify cross-reference works
-            if let Some(Value::Object(posts)) = obj.get("posts") {
-                assert_eq!(posts.get("author_id"), Some(&Value::Number(serde_json::Number::from(1))));
-                assert_eq!(posts.get("title"), Some(&Value::String("My Post".to_string())));
+        if let Ok(result) = result {
+            assert!(result.is_object());
+            if let Value::Object(obj) = result {
+                assert!(obj.contains_key("users"));
+                assert!(obj.contains_key("posts"));
+
+                // Verify cross-reference works
+                if let Some(Value::Object(posts)) = obj.get("posts") {
+                    assert_eq!(posts.get("author_id"), Some(&Value::Number(serde_json::Number::from(1))));
+                    assert_eq!(posts.get("title"), Some(&Value::String("My Post".to_string())));
+                }
             }
         }
     }
@@ -905,7 +940,12 @@ mod tests {
         assert_eq!(jgd.default_locale, "DE");
 
         let result = jgd.generate();
-        assert!(result.is_object());
+
+        assert!(result.is_ok());
+
+        if let Ok(result) = result {
+            assert!(result.is_object());
+        }
     }
 
     #[test]
@@ -919,10 +959,15 @@ mod tests {
         }"#);
 
         let result = jgd.generate();
-        assert!(result.is_object());
 
-        if let Value::Object(obj) = result {
-            assert!(obj.is_empty());
+        assert!(result.is_ok());
+
+        if let Ok(result) = result {
+            assert!(result.is_object());
+
+            if let Value::Object(obj) = result {
+                assert!(obj.is_empty());
+            }
         }
     }
 

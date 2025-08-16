@@ -1,9 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
 use indexmap::IndexMap;
+use rand::{rngs::StdRng, SeedableRng};
 use serde::Deserialize;
 use serde_json::Value;
-use crate::type_spec::{Count, Field, GetCount, JsonGenerator};
+use crate::{type_spec::{Count, Field, GetCount, JsonGenerator}, JgdGeneratorError, LocalConfig};
 
 /// Creates a fingerprint for uniqueness checking based on specified fields.
 ///
@@ -364,22 +365,29 @@ impl JsonGenerator for Entity {
     /// - **Large Value Space**: Easy to generate unique entities
     /// - **Small Value Space**: May hit retry limits with restrictive constraints
     /// - **Template Variety**: Ensure fake data templates provide sufficient variation
-    fn generate(&self, config: &mut super::GeneratorConfig) -> Value {
-        let count = self.count.count(config);
+    fn generate(&self, config: &mut super::GeneratorConfig, local_config: Option<&mut LocalConfig>
+        ) -> Result<Value, JgdGeneratorError> {
+        let count_items = self.count.count(config);
 
-        let mut items = Vec::with_capacity(count as usize);
+        let mut items = Vec::with_capacity(count_items as usize);
         let mut unique_sets: HashMap<String, HashSet<String>> = HashMap::new();
+
+        let rng = self.seed.map_or(None, |seed| Some(StdRng::seed_from_u64(seed)));
+
+        let mut local_config =
+            LocalConfig::from_current_with_config(rng, count_items, local_config);
 
         let mut _attempts = 0;
         const MAX_ATTEMPTS: usize = 1000; // Prevent infinite loops
 
-        for _ in 0..count {
+        for i in 0..count_items {
             let mut obj = None;
+            local_config.set_index(i as usize);
 
             // Try to generate a unique object
             for _ in 0..MAX_ATTEMPTS {
                 _attempts += 1;
-                let candidate = self.fields.generate(config);
+                let candidate = self.fields.generate(config, Some(&mut local_config))?;
 
                 if !self.unique_by.is_empty() {
                     let fp = fingerprint(&candidate, &self.unique_by);
@@ -401,7 +409,7 @@ impl JsonGenerator for Entity {
 
             if let Some(generated_obj) = obj {
                 if self.count.is_none() {
-                    return generated_obj;
+                    return Ok(generated_obj);
                 }
                 items.push(generated_obj);
             } else {
@@ -413,7 +421,7 @@ impl JsonGenerator for Entity {
             }
         }
 
-        Value::Array(items)
+        Ok(Value::Array(items))
     }
 }
 
@@ -524,17 +532,21 @@ impl JsonGenerator for IndexMap<String, Entity> {
     /// - **Reference Storage**: Each entity is cloned for storage in gen_value
     /// - **Memory Usage**: Stores both final result and reference copies
     /// - **Order Dependency**: Earlier entities can be referenced by later ones
-    fn generate(&self, config: &mut super::GeneratorConfig) -> serde_json::Value {
+    fn generate(&self, config: &mut super::GeneratorConfig, local_config: Option<&mut LocalConfig>
+        ) -> Result<Value, JgdGeneratorError> {
+        let mut local_config =
+            LocalConfig::from_current_with_config(None, 0, local_config);
 
         let mut map = serde_json::Map::new();
         for (name, entity) in self {
-            let generated = entity.generate(config);
+            local_config.entity_name = Some(name.clone());
+            let generated = entity.generate(config, Some(&mut local_config))?;
             map.insert(name.clone(), generated.clone());
 
             config.gen_value.insert(name.clone(), generated);
         }
 
-        Value::Object(map)
+        Ok(Value::Object(map))
     }
 }
 
@@ -620,14 +632,17 @@ mod tests {
             fields,
         };
 
-        let result = entity.generate(&mut config);
+        let result = entity.generate(&mut config, None);
+        assert!(result.is_ok());
 
-        match result {
-            Value::Object(obj) => {
-                assert_eq!(obj.get("name"), Some(&Value::String("John".to_string())));
-                assert_eq!(obj.get("age"), Some(&Value::Number(serde_json::Number::from(30))));
+        if let Ok(result) = result {
+            match result {
+                Value::Object(obj) => {
+                    assert_eq!(obj.get("name"), Some(&Value::String("John".to_string())));
+                    assert_eq!(obj.get("age"), Some(&Value::Number(serde_json::Number::from(30))));
+                }
+                _ => panic!("Expected object for single entity"),
             }
-            _ => panic!("Expected object for single entity"),
         }
     }
 
@@ -646,20 +661,23 @@ mod tests {
             fields,
         };
 
-        let result = entity.generate(&mut config);
+        let result = entity.generate(&mut config, None);
+        assert!(result.is_ok());
 
-        match result {
-            Value::Array(arr) => {
-                assert_eq!(arr.len(), 3);
-                for item in arr {
-                    assert!(item.is_object());
-                    if let Value::Object(obj) = item {
-                        assert!(obj.contains_key("id"));
-                        assert!(obj.get("id").unwrap().is_number());
+        if let Ok(result) = result {
+            match result {
+                Value::Array(arr) => {
+                    assert_eq!(arr.len(), 3);
+                    for item in arr {
+                        assert!(item.is_object());
+                        if let Value::Object(obj) = item {
+                            assert!(obj.contains_key("id"));
+                            assert!(obj.get("id").unwrap().is_number());
+                        }
                     }
                 }
+                _ => panic!("Expected array for entity with count"),
             }
-            _ => panic!("Expected array for entity with count"),
         }
     }
 
@@ -679,26 +697,29 @@ mod tests {
             fields,
         };
 
-        let result = entity.generate(&mut config);
+        let result = entity.generate(&mut config, None);
+        assert!(result.is_ok());
 
-        match result {
-            Value::Array(arr) => {
-                // Should generate up to 3 unique entities (might be less due to small range)
-                assert!(arr.len() <= 3);
+        if let Ok(result) = result {
+            match result {
+                Value::Array(arr) => {
+                    // Should generate up to 3 unique entities (might be less due to small range)
+                    assert!(arr.len() <= 3);
 
-                // Verify uniqueness
-                let mut seen_ids = std::collections::HashSet::new();
-                for item in arr {
-                    if let Value::Object(obj) = item {
-                        if let Some(Value::Number(id)) = obj.get("id") {
-                            let id_value = id.as_i64().unwrap();
-                            assert!(!seen_ids.contains(&id_value), "Duplicate ID found: {}", id_value);
-                            seen_ids.insert(id_value);
+                    // Verify uniqueness
+                    let mut seen_ids = std::collections::HashSet::new();
+                    for item in arr {
+                        if let Value::Object(obj) = item {
+                            if let Some(Value::Number(id)) = obj.get("id") {
+                                let id_value = id.as_i64().unwrap();
+                                assert!(!seen_ids.contains(&id_value), "Duplicate ID found: {}", id_value);
+                                seen_ids.insert(id_value);
+                            }
                         }
                     }
                 }
+                _ => panic!("Expected array for entity with count"),
             }
-            _ => panic!("Expected array for entity with count"),
         }
     }
 
@@ -720,28 +741,31 @@ mod tests {
             fields,
         };
 
-        let result = entity.generate(&mut config);
+        let result = entity.generate(&mut config, None);
+        assert!(result.is_ok());
 
-        match result {
-            Value::Array(arr) => {
-                // With 2x2 combinations, maximum should be 4 unique entities
-                assert!(arr.len() <= 4);
+        if let Ok(result) = result {
+            match result {
+                Value::Array(arr) => {
+                    // With 2x2 combinations, maximum should be 4 unique entities
+                    assert!(arr.len() <= 4);
 
-                // Verify composite uniqueness
-                let mut seen_combinations = std::collections::HashSet::new();
-                for item in arr {
-                    if let Value::Object(obj) = item {
-                        let cat = obj.get("category").unwrap().as_i64().unwrap();
-                        let subcat = obj.get("subcategory").unwrap().as_i64().unwrap();
-                        let combination = (cat, subcat);
+                    // Verify composite uniqueness
+                    let mut seen_combinations = std::collections::HashSet::new();
+                    for item in arr {
+                        if let Value::Object(obj) = item {
+                            let cat = obj.get("category").unwrap().as_i64().unwrap();
+                            let subcat = obj.get("subcategory").unwrap().as_i64().unwrap();
+                            let combination = (cat, subcat);
 
-                        assert!(!seen_combinations.contains(&combination),
-                               "Duplicate combination found: {:?}", combination);
-                        seen_combinations.insert(combination);
+                            assert!(!seen_combinations.contains(&combination),
+                                "Duplicate combination found: {:?}", combination);
+                            seen_combinations.insert(combination);
+                        }
                     }
                 }
+                _ => panic!("Expected array for entity with count"),
             }
-            _ => panic!("Expected array for entity with count"),
         }
     }
 
@@ -773,21 +797,24 @@ mod tests {
             fields: post_fields,
         });
 
-        let result = entities.generate(&mut config);
+        let result = entities.generate(&mut config, None);
+        assert!(result.is_ok());
 
-        match result {
-            Value::Object(obj) => {
-                assert_eq!(obj.len(), 2);
-                assert!(obj.contains_key("users"));
-                assert!(obj.contains_key("posts"));
+        if let Ok(result) = result {
+            match result {
+                Value::Object(obj) => {
+                    assert_eq!(obj.len(), 2);
+                    assert!(obj.contains_key("users"));
+                    assert!(obj.contains_key("posts"));
 
-                // Users should be an array
-                assert!(obj.get("users").unwrap().is_array());
+                    // Users should be an array
+                    assert!(obj.get("users").unwrap().is_array());
 
-                // Posts should be an object (no count specified)
-                assert!(obj.get("posts").unwrap().is_object());
+                    // Posts should be an object (no count specified)
+                    assert!(obj.get("posts").unwrap().is_object());
+                }
+                _ => panic!("Expected object for entity map"),
             }
-            _ => panic!("Expected object for entity map"),
         }
     }
 
@@ -806,7 +833,7 @@ mod tests {
             fields: user_fields,
         });
 
-        entities.generate(&mut config);
+        let _ = entities.generate(&mut config, None);
 
         // Verify that the entity was stored in gen_value for cross-references
         assert!(config.gen_value.contains_key("users"));

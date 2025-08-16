@@ -23,6 +23,12 @@ fn main() -> Result<()> {
 
     let generated = jgd_rs::generate_jgd_from_file(&cli.input);
 
+    if let Err(error) = generated {
+        eprintln!("{}", error);
+        return Ok(());
+    }
+
+    let generated = generated.unwrap();
     let serialized = if cli.pretty {
         serde_json::to_string_pretty(&generated).unwrap()
     } else {

@@ -1,6 +1,6 @@
 use serde::Deserialize;
 use serde_json::Value;
-use crate::type_spec::{Count, Field, GetCount, JsonGenerator};
+use crate::{type_spec::{Count, Field, GetCount, JsonGenerator}, JgdGeneratorError, LocalConfig};
 
 /// Specification for generating JSON arrays in JGD (JSON Generator Definition) schemas.
 ///
@@ -272,14 +272,21 @@ impl JsonGenerator for ArraySpec {
     /// - The generator configuration is properly initialized
     ///
     /// Invalid configurations may result in panics or unexpected behavior.
-    fn generate(&self, config: &mut super::GeneratorConfig) -> Value {
-        let len = self.count.count(config);
-        let mut arr = Vec::with_capacity(len as usize);
-        for _ in 0..len {
-            arr.push(self.of.generate(config));
+    fn generate(&self, config: &mut super::GeneratorConfig, local_config: Option<&mut LocalConfig>
+        ) -> Result<Value, JgdGeneratorError> {
+        let count_items = self.count.count(config);
+        let mut arr = Vec::with_capacity(count_items as usize);
+
+        let mut local_config =
+            LocalConfig::from_current_with_config(None, count_items, local_config);
+
+        for i in 0..count_items {
+            local_config.set_index(i as usize);
+            let item = self.of.generate(config, Some(&mut local_config))?;
+            arr.push(item);
         }
 
-        Value::Array(arr)
+        Ok(Value::Array(arr))
     }
 }
 
@@ -303,16 +310,19 @@ mod tests {
             count: Some(Count::Fixed(3)),
         };
 
-        let result = spec.generate(&mut config);
+        let result = spec.generate(&mut config, None);
+        assert!(result.is_ok());
 
-        match result {
-            Value::Array(arr) => {
-                assert_eq!(arr.len(), 3);
-                for element in arr {
-                    assert!(element.is_number());
+        if let Ok(result) = result {
+            match result {
+                Value::Array(arr) => {
+                    assert_eq!(arr.len(), 3);
+                    for element in arr {
+                        assert!(element.is_number());
+                    }
                 }
+                _ => panic!("Expected array"),
             }
-            _ => panic!("Expected array"),
         }
     }
 
@@ -327,16 +337,19 @@ mod tests {
             count: Some(Count::Range((2, 5))),
         };
 
-        let result = spec.generate(&mut config);
+        let result = spec.generate(&mut config, None);
+        assert!(result.is_ok());
 
-        match result {
-            Value::Array(arr) => {
-                assert!((2..=5).contains(&arr.len()));
-                for element in arr {
-                    assert!(element.is_number());
+        if let Ok(result) = result {
+            match result {
+                Value::Array(arr) => {
+                    assert!((2..=5).contains(&arr.len()));
+                    for element in arr {
+                        assert!(element.is_number());
+                    }
                 }
+                _ => panic!("Expected array"),
             }
-            _ => panic!("Expected array"),
         }
     }
 
@@ -351,14 +364,17 @@ mod tests {
             count: None, // Should default to 1
         };
 
-        let result = spec.generate(&mut config);
+        let result = spec.generate(&mut config, None);
+        assert!(result.is_ok());
 
-        match result {
-            Value::Array(arr) => {
-                assert_eq!(arr.len(), 1);
-                assert!(arr[0].is_number());
+        if let Ok(result) = result {
+            match result {
+                Value::Array(arr) => {
+                    assert_eq!(arr.len(), 1);
+                    assert!(arr[0].is_number());
+                }
+                _ => panic!("Expected array"),
             }
-            _ => panic!("Expected array"),
         }
     }
 
@@ -373,13 +389,16 @@ mod tests {
             count: Some(Count::Fixed(0)),
         };
 
-        let result = spec.generate(&mut config);
+        let result = spec.generate(&mut config, None);
+        assert!(result.is_ok());
 
-        match result {
-            Value::Array(arr) => {
-                assert_eq!(arr.len(), 0);
+        if let Ok(result) = result {
+            match result {
+                Value::Array(arr) => {
+                    assert_eq!(arr.len(), 0);
+                }
+                _ => panic!("Expected array"),
             }
-            _ => panic!("Expected array"),
         }
     }
 
@@ -395,11 +414,17 @@ mod tests {
         let mut config1 = create_test_config(Some(42));
         let mut config2 = create_test_config(Some(42));
 
-        let result1 = spec.generate(&mut config1);
-        let result2 = spec.generate(&mut config2);
+        let result1 = spec.generate(&mut config1, None);
+        let result2 = spec.generate(&mut config2, None);
+        assert!(result1.is_ok());
+        assert!(result2.is_ok());
 
-        // Same seed should produce identical arrays
-        assert_eq!(result1, result2);
+        if let Ok(result1) = result1 {
+            if let Ok(result2) = result2 {
+                // Same seed should produce identical arrays
+                assert_eq!(result1, result2);
+            }
+        }
     }
 
     #[test]
@@ -414,13 +439,19 @@ mod tests {
         let mut config1 = create_test_config(Some(42));
         let mut config2 = create_test_config(Some(123));
 
-        let result1 = spec.generate(&mut config1);
-        let result2 = spec.generate(&mut config2);
+        let result1 = spec.generate(&mut config1, None);
+        let result2 = spec.generate(&mut config2, None);
+        assert!(result1.is_ok());
+        assert!(result2.is_ok());
 
-        // Different seeds might produce different results
-        // At minimum, both should be valid arrays
-        assert!(result1.is_array());
-        assert!(result2.is_array());
+        if let Ok(result1) = result1 {
+            if let Ok(result2) = result2 {
+                // Different seeds might produce different results
+                // At minimum, both should be valid arrays
+                assert!(result1.is_array());
+                assert!(result2.is_array());
+            }
+        }
     }
 
     #[test]
@@ -435,12 +466,18 @@ mod tests {
         let cloned_spec = spec.clone();
         let mut config = create_test_config(Some(42));
 
-        let result1 = spec.generate(&mut config);
-        let result2 = cloned_spec.generate(&mut config);
+        let result1 = spec.generate(&mut config, None);
+        let result2 = cloned_spec.generate(&mut config, None);
+        assert!(result1.is_ok());
+        assert!(result2.is_ok());
 
-        // Both should generate arrays (though content may differ due to RNG state)
-        assert!(result1.is_array());
-        assert!(result2.is_array());
+        if let Ok(result1) = result1 {
+            if let Ok(result2) = result2 {
+                // Both should generate arrays (though content may differ due to RNG state)
+                assert!(result1.is_array());
+                assert!(result2.is_array());
+            }
+        }
     }
 
     #[test]
@@ -468,18 +505,21 @@ mod tests {
             count: Some(Count::Fixed(100)),
         };
 
-        let result = spec.generate(&mut config);
+        let result = spec.generate(&mut config, None);
+        assert!(result.is_ok());
 
-        match result {
-            Value::Array(arr) => {
-                assert_eq!(arr.len(), 100);
-                for element in arr {
-                    assert!(element.is_number());
-                    let num = element.as_i64().unwrap();
-                    assert!((1..=10).contains(&num));
+        if let Ok(result) = result {
+            match result {
+                Value::Array(arr) => {
+                    assert_eq!(arr.len(), 100);
+                    for element in arr {
+                        assert!(element.is_number());
+                        let num = element.as_i64().unwrap();
+                        assert!((1..=10).contains(&num));
+                    }
                 }
+                _ => panic!("Expected array"),
             }
-            _ => panic!("Expected array"),
         }
     }
 
@@ -494,23 +534,26 @@ mod tests {
             count: Some(Count::Fixed(10)),
         };
 
-        let result = spec.generate(&mut config);
+        let result = spec.generate(&mut config, None);
+        assert!(result.is_ok());
 
-        match result {
-            Value::Array(arr) => {
-                assert_eq!(arr.len(), 10);
+        if let Ok(result) = result {
+            match result {
+                Value::Array(arr) => {
+                    assert_eq!(arr.len(), 10);
 
-                // Convert to numbers for comparison
-                let numbers: Vec<i64> = arr.iter()
-                    .map(|v| v.as_i64().unwrap())
-                    .collect();
+                    // Convert to numbers for comparison
+                    let numbers: Vec<i64> = arr.iter()
+                        .map(|v| v.as_i64().unwrap())
+                        .collect();
 
-                // With a large range and good RNG, we should get some variety
-                // (This test might occasionally fail with very bad luck, but is highly unlikely)
-                let unique_count = numbers.iter().collect::<std::collections::HashSet<_>>().len();
-                assert!(unique_count > 1, "Expected some variety in generated numbers");
+                    // With a large range and good RNG, we should get some variety
+                    // (This test might occasionally fail with very bad luck, but is highly unlikely)
+                    let unique_count = numbers.iter().collect::<std::collections::HashSet<_>>().len();
+                    assert!(unique_count > 1, "Expected some variety in generated numbers");
+                }
+                _ => panic!("Expected array"),
             }
-            _ => panic!("Expected array"),
         }
     }
 
@@ -523,16 +566,19 @@ mod tests {
             count: Some(Count::Fixed(2)),
         };
 
-        let result = spec.generate(&mut config);
+        let result = spec.generate(&mut config, None);
+        assert!(result.is_ok());
 
-        match result {
-            Value::Array(arr) => {
-                assert_eq!(arr.len(), 2);
-                for element in arr {
-                    assert_eq!(element, Value::String("test_value".to_string()));
+        if let Ok(result) = result {
+            match result {
+                Value::Array(arr) => {
+                    assert_eq!(arr.len(), 2);
+                    for element in arr {
+                        assert_eq!(element, Value::String("test_value".to_string()));
+                    }
                 }
+                _ => panic!("Expected array"),
             }
-            _ => panic!("Expected array"),
         }
     }
 
@@ -546,13 +592,17 @@ mod tests {
             count: Some(Count::Fixed(1)),
         };
 
-        let result = bool_spec.generate(&mut config);
-        match result {
-            Value::Array(arr) => {
-                assert_eq!(arr.len(), 1);
-                assert_eq!(arr[0], Value::Bool(true));
+        let result = bool_spec.generate(&mut config, None);
+        assert!(result.is_ok());
+
+        if let Ok(result) = result {
+            match result {
+                Value::Array(arr) => {
+                    assert_eq!(arr.len(), 1);
+                    assert_eq!(arr[0], Value::Bool(true));
+                }
+                _ => panic!("Expected array"),
             }
-            _ => panic!("Expected array"),
         }
 
         // Test with null
@@ -561,13 +611,17 @@ mod tests {
             count: Some(Count::Fixed(1)),
         };
 
-        let result = null_spec.generate(&mut config);
-        match result {
-            Value::Array(arr) => {
-                assert_eq!(arr.len(), 1);
-                assert_eq!(arr[0], Value::Null);
+        let result = null_spec.generate(&mut config, None);
+        assert!(result.is_ok());
+
+        if let Ok(result) = result {
+            match result {
+                Value::Array(arr) => {
+                    assert_eq!(arr.len(), 1);
+                    assert_eq!(arr[0], Value::Null);
+                }
+                _ => panic!("Expected array"),
             }
-            _ => panic!("Expected array"),
         }
     }
 }

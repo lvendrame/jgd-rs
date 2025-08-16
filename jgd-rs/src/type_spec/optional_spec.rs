@@ -21,7 +21,7 @@
 use rand::Rng;
 use serde::Deserialize;
 use serde_json::Value;
-use crate::type_spec::{Field, JsonGenerator};
+use crate::{type_spec::{Field, JsonGenerator}, JgdGeneratorError, LocalConfig};
 
 /// Default probability value when not specified in the JSON schema.
 ///
@@ -178,11 +178,12 @@ impl JsonGenerator for OptionalSpec {
     /// When using a seeded random number generator, the probability outcomes become
     /// deterministic and reproducible, which is useful for testing and consistent
     /// data generation across runs.
-    fn generate(&self, config: &mut super::GeneratorConfig) -> Value {
+    fn generate(&self, config: &mut super::GeneratorConfig, local_config: Option<&mut LocalConfig>
+        ) -> Result<Value, JgdGeneratorError> {
         if config.rng.random::<f64>() < self.prob {
-            self.of.generate(config)
+            self.of.generate(config, local_config)
         } else {
-            Value::Null
+            Ok(Value::Null)
         }
     }
 }
@@ -212,8 +213,12 @@ mod tests {
 
         // Test multiple times to ensure it always generates
         for _ in 0..10 {
-            let result = optional.generate(&mut config);
-            assert_eq!(result, Value::String("test".to_string()));
+            let result = optional.generate(&mut config, None);
+            assert!(result.is_ok());
+
+            if let Ok(result) = result {
+                assert_eq!(result, Value::String("test".to_string()));
+            }
         }
     }
 
@@ -228,8 +233,12 @@ mod tests {
 
         // Test multiple times to ensure it never generates
         for _ in 0..10 {
-            let result = optional.generate(&mut config);
-            assert_eq!(result, Value::Null);
+            let result = optional.generate(&mut config,None);
+            assert!(result.is_ok());
+
+            if let Ok(result) = result {
+                assert_eq!(result, Value::Null);
+            }
         }
     }
 
@@ -246,9 +255,13 @@ mod tests {
         let total_attempts = 1000;
 
         for _ in 0..total_attempts {
-            let result = optional.generate(&mut config);
-            if result != Value::Null {
-                generated_count += 1;
+            let result = optional.generate(&mut config, None);
+            assert!(result.is_ok());
+
+            if let Ok(result) = result {
+                if result != Value::Null {
+                    generated_count += 1;
+                }
             }
         }
 
@@ -269,8 +282,12 @@ mod tests {
             prob: 1.0,
         };
 
-        let result = bool_optional.generate(&mut config);
-        assert_eq!(result, Value::Bool(true));
+        let result = bool_optional.generate(&mut config, None);
+        assert!(result.is_ok());
+
+        if let Ok(result) = result {
+            assert_eq!(result, Value::Bool(true));
+        }
 
         // Test with integer field
         let int_optional = OptionalSpec {
@@ -278,8 +295,12 @@ mod tests {
             prob: 1.0,
         };
 
-        let result = int_optional.generate(&mut config);
-        assert_eq!(result, Value::Number(serde_json::Number::from(42)));
+        let result = int_optional.generate(&mut config, None);
+        assert!(result.is_ok());
+
+        if let Ok(result) = result {
+            assert_eq!(result, Value::Number(serde_json::Number::from(42)));
+        }
 
         // Test with null field
         let null_optional = OptionalSpec {
@@ -287,8 +308,12 @@ mod tests {
             prob: 1.0,
         };
 
-        let result = null_optional.generate(&mut config);
-        assert_eq!(result, Value::Null);
+        let result = null_optional.generate(&mut config, None);
+        assert!(result.is_ok());
+
+        if let Ok(result) = result {
+            assert_eq!(result, Value::Null);
+        }
     }
 
     #[test]
@@ -301,13 +326,13 @@ mod tests {
         // Generate with same seed multiple times
         let results1: Vec<Value> = (0..10).map(|_| {
             let mut config = create_test_config(Some(42));
-            optional.generate(&mut config)
-        }).collect();
+            optional.generate(&mut config, None)
+        }).map(|v| v.unwrap_or(Value::Null)).collect();
 
         let results2: Vec<Value> = (0..10).map(|_| {
             let mut config = create_test_config(Some(42));
-            optional.generate(&mut config)
-        }).collect();
+            optional.generate(&mut config, None)
+        }).map(|v| v.unwrap_or(Value::Bool(true))).collect();
 
         // Results should be identical with same seed
         assert_eq!(results1, results2);
@@ -323,8 +348,10 @@ mod tests {
         let mut config1 = create_test_config(Some(42));
         let mut config2 = create_test_config(Some(24));
 
-        let results1: Vec<Value> = (0..20).map(|_| optional.generate(&mut config1)).collect();
-        let results2: Vec<Value> = (0..20).map(|_| optional.generate(&mut config2)).collect();
+        let results1: Vec<Value> = (0..20)
+            .map(|_| optional.generate(&mut config1, None).unwrap_or(Value::Null)).collect();
+        let results2: Vec<Value> = (0..20)
+            .map(|_| optional.generate(&mut config2, None).unwrap_or(Value::Bool(true))).collect();
 
         // Different seeds should produce different results
         assert_ne!(results1, results2);
@@ -342,12 +369,12 @@ mod tests {
         assert_eq!(cloned.prob, original.prob);
         // Test that the cloned field generates the same type
         let mut config = create_test_config(Some(42));
-        let original_result = original.generate(&mut config);
+        let original_result = original.generate(&mut config, None);
         let mut config2 = create_test_config(Some(42)); // Same seed
-        let cloned_result = cloned.generate(&mut config2);
+        let cloned_result = cloned.generate(&mut config2, None);
 
         // With same seed, should get same result
-        assert_eq!(original_result, cloned_result);
+        assert_eq!(original_result.unwrap_or(Value::Null), cloned_result.unwrap_or(Value::Bool(true)));
     }
 
     #[test]
@@ -375,9 +402,13 @@ mod tests {
         // Should mostly generate null, but might occasionally generate value
         let mut null_count = 0;
         for _ in 0..100 {
-            let result = tiny_prob.generate(&mut config);
-            if result == Value::Null {
-                null_count += 1;
+            let result = tiny_prob.generate(&mut config, None);
+            assert!(result.is_ok());
+
+            if let Ok(result) = result {
+                if result == Value::Null {
+                    null_count += 1;
+                }
             }
         }
 
@@ -392,9 +423,13 @@ mod tests {
 
         let mut value_count = 0;
         for _ in 0..100 {
-            let result = high_prob.generate(&mut config);
-            if result != Value::Null {
-                value_count += 1;
+            let result = high_prob.generate(&mut config, None);
+            assert!(result.is_ok());
+
+            if let Ok(result) = result {
+                if result != Value::Null {
+                    value_count += 1;
+                }
             }
         }
 
@@ -420,13 +455,17 @@ mod tests {
         // Generate several times to test all possible outcomes
         let mut outcomes = std::collections::HashMap::new();
         for _ in 0..100 {
-            let result = outer_optional.generate(&mut config);
-            let outcome = match result {
-                Value::Null => "outer_null",
-                Value::String(_) => "inner_string",
-                _ => "unknown",
-            };
-            *outcomes.entry(outcome).or_insert(0) += 1;
+            let result = outer_optional.generate(&mut config, None);
+            assert!(result.is_ok());
+
+            if let Ok(result) = result {
+                let outcome = match result {
+                    Value::Null => "outer_null",
+                    Value::String(_) => "inner_string",
+                    _ => "unknown",
+                };
+                *outcomes.entry(outcome).or_insert(0) += 1;
+            }
         }
 
         // Should have both null outcomes and string outcomes
@@ -453,14 +492,17 @@ mod tests {
             prob: 1.0,
         };
 
-        let result = optional.generate(&mut config);
+        let result = optional.generate(&mut config, None);
+            assert!(result.is_ok());
 
-        // Should generate an array when prob is 1.0
-        assert!(result.is_array());
-        if let Value::Array(arr) = result {
-            assert_eq!(arr.len(), 3);
-            for item in arr {
-                assert_eq!(item, Value::String("item".to_string()));
+            if let Ok(result) = result {
+            // Should generate an array when prob is 1.0
+            assert!(result.is_array());
+            if let Value::Array(arr) = result {
+                assert_eq!(arr.len(), 3);
+                for item in arr {
+                    assert_eq!(item, Value::String("item".to_string()));
+                }
             }
         }
     }
@@ -478,10 +520,14 @@ mod tests {
                 prob,
             };
 
-            let result = optional.generate(&mut config);
+            let result = optional.generate(&mut config, None);
+            assert!(result.is_ok());
 
-            // All probabilities should produce valid results (either value or null)
-            assert!(result == Value::Number(serde_json::Number::from(1)) || result == Value::Null);
+            if let Ok(result) = result {
+
+                // All probabilities should produce valid results (either value or null)
+                assert!(result == Value::Number(serde_json::Number::from(1)) || result == Value::Null);
+            }
         }
     }
 
@@ -497,15 +543,21 @@ mod tests {
         let mut config = create_test_config(Some(42));
         let _ = config.rng.random::<f64>(); // Advance RNG state
 
-        let result1 = optional.generate(&mut config);
+        let result1 = optional.generate(&mut config, None);
+        assert!(result1.is_ok());
 
         // Create fresh config with same seed
         let mut config2 = create_test_config(Some(42));
         let _ = config2.rng.random::<f64>(); // Advance RNG state same way
 
-        let result2 = optional.generate(&mut config2);
+        let result2 = optional.generate(&mut config2, None);
+        assert!(result2.is_ok());
 
-        // Should get same result when RNG is in same state
-        assert_eq!(result1, result2);
+        if let Ok(result1) = result1 {
+            if let Ok(result2) = result2 {
+                // Should get same result when RNG is in same state
+                assert_eq!(result1, result2);
+            }
+        }
     }
 }
