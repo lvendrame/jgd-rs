@@ -97,7 +97,7 @@ pub trait FakeLocaleGenerator {
     fn name_name(&self, rng: &mut StdRng) -> Value;
     fn name_name_with_title(&self, rng: &mut StdRng) -> Value;
     fn number_digit(&self, rng: &mut StdRng) -> Value;
-    fn number_number_with_format<'a>(&self, rng: &mut StdRng, fmt: &'a str) -> Value;
+    fn number_number_with_format(&self, rng: &mut StdRng, fmt: &str) -> Value;
     fn phone_number_phone_number(&self, rng: &mut StdRng) -> Value;
     fn phone_number_cell_number(&self, rng: &mut StdRng) -> Value;
     fn filesystem_file_path(&self, rng: &mut StdRng) -> Value;
@@ -447,7 +447,7 @@ macro_rules! locale_generator {
             fn number_digit(&self, rng: &mut StdRng) -> Value {
                 Value::String(faker::number::$locale::Digit().fake_with_rng(rng))
             }
-            fn number_number_with_format<'a>(&self, rng: &mut StdRng, fmt: &'a str) -> Value {
+            fn number_number_with_format(&self, rng: &mut StdRng, fmt: &str) -> Value {
                 Value::String(faker::number::$locale::NumberWithFormat(fmt).fake_with_rng(rng))
             }
             fn phone_number_phone_number(&self, rng: &mut StdRng) -> Value {

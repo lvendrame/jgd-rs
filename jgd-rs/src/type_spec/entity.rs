@@ -372,7 +372,7 @@ impl JsonGenerator for Entity {
         let mut items = Vec::with_capacity(count_items as usize);
         let mut unique_sets: HashMap<String, HashSet<String>> = HashMap::new();
 
-        let rng = self.seed.map_or(None, |seed| Some(StdRng::seed_from_u64(seed)));
+        let rng = self.seed.map(StdRng::seed_from_u64);
 
         let mut local_config =
             LocalConfig::from_current_with_config(rng, count_items, local_config);

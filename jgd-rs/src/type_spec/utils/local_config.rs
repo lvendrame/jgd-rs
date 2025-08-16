@@ -48,8 +48,8 @@ impl LocalConfig {
 
         Self {
             rng,
-            entity_name: entity_name.map_or(None, |v| Some(v.to_string())),
-            field_name: field_name.map_or(None, |v| Some(v.to_string())),
+            entity_name: entity_name.map(|v| v.to_string()),
+            field_name: field_name.map(|v| v.to_string()),
             indices,
             count_items,
         }
@@ -61,7 +61,7 @@ impl LocalConfig {
         parent_config: Option<&mut LocalConfig>,
     ) -> Self {
         if let Some(config) = parent_config {
-            let rng = if let Some(_) = rng {
+            let rng = if rng.is_some() {
                 rng
             } else {
                 config.rng.clone()
@@ -86,7 +86,7 @@ impl LocalConfig {
     }
 
     pub fn set_index(&mut self, index: usize) {
-        if self.indices.len() > 0 {
+        if !self.indices.is_empty() {
             self.indices[0] = index;
         }
     }
