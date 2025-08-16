@@ -364,7 +364,8 @@ impl Jgd {
     /// # use jgd_rs::{Jgd, Arguments};
     /// # use serde_json::Value;
     /// # use jgd_rs::JgdGeneratorError;
-    /// Jgd::add_custom_key("custom.greeting", Box::new(|args| {
+    /// # use std::sync::Arc;
+    /// Jgd::add_custom_key("custom.greeting", Arc::new(|args: Arguments| {
     ///     let name = args.get_string("World");
     ///     Ok(Value::String(format!("Hello, {}!", name)))
     /// }));

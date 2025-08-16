@@ -273,7 +273,7 @@ impl JsonGenerator for NumberSpec {
     ///     max: 10.0,
     ///     integer: true,
     /// };
-    /// let value = int_spec.generate(&mut config);
+    /// let value = int_spec.generate(&mut config, None).unwrap();
     /// if let Value::Number(n) = value {
     ///     assert!(n.is_i64());
     ///     let int_val = n.as_i64().unwrap();
@@ -286,7 +286,7 @@ impl JsonGenerator for NumberSpec {
     ///     max: 1.0,
     ///     integer: false,
     /// };
-    /// let value = float_spec.generate(&mut config);
+    /// let value = float_spec.generate(&mut config, None).unwrap();
     /// if let Value::Number(n) = value {
     ///     let float_val = n.as_f64().unwrap();
     ///     assert!((0.0..=1.0).contains(&float_val));

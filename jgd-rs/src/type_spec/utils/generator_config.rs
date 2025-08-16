@@ -26,14 +26,11 @@ use crate::fake::{FakeGenerator, FakeKeys};
 /// # Examples
 ///
 /// ```rust,ignore
-/// use jgd_rs::{GeneratorConfig, NumberSpec};
+/// use jgd_rs::{GeneratorConfig, NumberSpec, JsonGenerator};
 ///
-/// // Create config with English locale and deterministic seed
 /// let mut config = GeneratorConfig::new("EN", Some(42));
-///
-/// // Use config for generation
-/// let spec = NumberSpec::new_integer(1.0, 100.0);
-/// let value = spec.generate(&mut config);
+/// let spec = NumberSpec::new_integer(1.0, 10.0);
+/// let value = spec.generate(&mut config, None).unwrap();
 /// ```
 ///
 /// # Thread Safety
