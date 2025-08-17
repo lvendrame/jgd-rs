@@ -10,4 +10,4 @@ export { EntityGenerator } from "./entity";
 export { Jgd } from "./jgd";
 
 // Re-export utils for convenience
-export * from "../utils/mod";
+export * from "../utils";

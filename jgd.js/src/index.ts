@@ -38,7 +38,7 @@ export {
   validateSchemaMode,
   validateNumberRange,
   toJsonValue,
-} from "./utils/mod";
+} from "./utils";
 
 // Type guard exports
 export { isSuccess, isError } from "./types";
@@ -59,13 +59,13 @@ export { ArraySpec } from "./type-spec/array-spec";
 export { OptionalSpec } from "./type-spec/optional-spec";
 export { FieldGenerator } from "./type-spec/field";
 export { EntityGenerator } from "./type-spec/entity";
-export { Replacer, Arguments } from "./utils/mod";
+export { Replacer, Arguments } from "./utils";
 
 // Template processing exports
 export { processTemplate, isTemplate } from "./template";
 
 // JGD Keys exports
-export { JgdKeyGenerator, JGD_KEYS } from "./fake/mod";
+export { JgdKeyGenerator, JGD_KEYS } from "./fake";
 
 // Error export
 export { JgdGeneratorError } from "./types";
