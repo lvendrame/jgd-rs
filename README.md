@@ -15,6 +15,10 @@ The core Rust library that powers JSON data generation. See [jgd-rs README](./jg
 
 A command-line interface for generating JSON data from JGD schema files.
 
+### [JGD JavaScript Library](./jgd.js/)
+
+The JavaScript library that powers JSON data generation. See [jgd.js README](./jgd.js/README.md) for detailed documentation, API reference, and usage examples.
+
 ## 🎯 What is JGD?
 
 JGD (JSON Generator Definition) is a declarative schema format for generating realistic fake JSON data. It allows you to:
