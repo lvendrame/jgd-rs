@@ -1,7 +1,12 @@
 /**
  * Entity specification for generating complex objects.
  *
- * This class mirrors the Rust Entity struct and provides all the same functionality
+ * This class mirror  constructor(
+    fields: Record<string, FieldSpec>,
+    count?: Count,
+    seed?: number,
+    unique_by?: string[]
+  ) {Rust Entity struct and provides all the same functionality
  * including count specification, uniqueness constraints, field definitions, and generation.
  */
 import type {
@@ -11,15 +16,9 @@ import type {
   LocalConfig,
   JsonGenerator,
 } from "../types";
-import type { CountSpec } from "./count";
+import { Count } from "./count";
 import type { FieldSpec } from "./field";
-import {
-  success,
-  error,
-  resolveCount,
-  pushDepth,
-  popDepth,
-} from "../utils/generator-utils";
+import { success, error, pushDepth, popDepth } from "../utils/generator-utils";
 
 /**
  * Entity class representing the complete entity specification and generator.
@@ -38,9 +37,9 @@ export class Entity implements JsonGenerator<JsonValue> {
    *
    * Determines whether to generate a single entity object or an array of entities:
    * - undefined: Generates a single entity object (not wrapped in an array)
-   * - CountSpec: Generates an array with the specified count
+   * - Count: Generates an array with the specified count
    */
-  public count?: CountSpec;
+  public count?: Count;
 
   /**
    * Optional seed for deterministic entity generation.
@@ -84,7 +83,7 @@ export class Entity implements JsonGenerator<JsonValue> {
    */
   constructor(
     fields: Record<string, FieldSpec>,
-    count?: CountSpec,
+    count?: Count,
     seed?: number,
     unique_by: string[] = []
   ) {
@@ -108,7 +107,7 @@ export class Entity implements JsonGenerator<JsonValue> {
       }
 
       // Generate multiple entities
-      const itemCount = resolveCount(this.count, config);
+      const itemCount = this.count.resolve(config);
       const entities: JsonValue[] = [];
 
       for (let i = 0; i < itemCount; i++) {
@@ -204,12 +203,23 @@ export class Entity implements JsonGenerator<JsonValue> {
    * @returns New Entity instance
    */
   static fromSpec(spec: {
-    count?: CountSpec;
+    count?:
+      | Count
+      | number
+      | { fixed: number }
+      | { range: [number, number] }
+      | [number, number];
     seed?: number;
     unique_by?: string[];
     fields: Record<string, FieldSpec>;
   }): Entity {
-    return new Entity(spec.fields, spec.count, spec.seed, spec.unique_by || []);
+    const count =
+      spec.count instanceof Count
+        ? spec.count
+        : spec.count
+        ? Count.from(spec.count)
+        : undefined;
+    return new Entity(spec.fields, count, spec.seed, spec.unique_by || []);
   }
 
   /**
@@ -218,7 +228,7 @@ export class Entity implements JsonGenerator<JsonValue> {
    * @returns Plain object representation
    */
   toSpec(): {
-    count?: CountSpec;
+    count?: Count;
     seed?: number;
     unique_by?: string[];
     fields: Record<string, FieldSpec>;

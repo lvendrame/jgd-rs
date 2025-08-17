@@ -1,15 +1,17 @@
 /**
- * Count specification for JGD (JSON Generator Definition) entities.
+ * Count specification and generator for JGD (JSON Generator Definition) entities.
  *
- * This class represents count specifications for generating multiple items and defines
- * how many items should be generated for arrays, collections, or repeated elements
- * in JGD schemas. It supports both fixed counts and dynamic ranges.
+ * This unified class represents both count specifications and their resolution
+ * for generating multiple items. It defines how many items should be generated
+ * for arrays, collections, or repeated elements in JGD schemas and provides
+ * methods to resolve these specifications to actual counts.
  */
 
 import type { GeneratorConfig } from "../types";
 
 /**
  * Type alias for backward compatibility and cleaner type annotations.
+ * This represents the input formats that can be used to create Count instances.
  */
 export type CountSpec =
   | number
@@ -18,16 +20,20 @@ export type CountSpec =
   | [number, number];
 
 /**
- * Represents count specifications for generating multiple items.
+ * Unified Count class that handles both specification and generation.
  *
- * Count defines how many items should be generated for arrays, collections,
- * or repeated elements in JGD schemas. It supports both fixed counts and
- * dynamic ranges, allowing for flexible data generation scenarios.
+ * This class merges the functionality of count specifications and count resolution,
+ * allowing for flexible definition and deterministic generation of item counts.
+ * It supports both fixed counts and dynamic ranges, enabling various data
+ * generation scenarios.
  *
- * Can be used as:
- * - Direct number: 5
- * - Object form: { fixed: 5 } or { range: [1, 10] }
- * - Array form: [1, 10] (for ranges)
+ * Usage examples:
+ * - Count.fixed(5) - Always generates exactly 5 items
+ * - Count.range(1, 10) - Generates between 1 and 10 items (inclusive)
+ * - Count.from(5) - Creates from number literal
+ * - Count.from([1, 10]) - Creates from array range format
+ * - Count.from({ fixed: 5 }) - Creates from object format
+ * - Count.from({ range: [1, 10] }) - Creates from object range format
  */
 export class Count {
   private readonly spec: CountSpec;
@@ -231,19 +237,4 @@ export class Count {
       return `Count.Range([${range![0]}, ${range![1]}])`;
     }
   }
-}
-
-/**
- * Utility function to resolve a count specification to an actual number.
- * This function provides backward compatibility with the existing codebase.
- *
- * @param countSpec - Count specification in any supported format
- * @param config - Generator configuration containing RNG state
- * @returns The resolved count value
- */
-export function resolveCount(
-  countSpec: CountSpec,
-  config: GeneratorConfig
-): number {
-  return Count.from(countSpec).resolve(config);
 }

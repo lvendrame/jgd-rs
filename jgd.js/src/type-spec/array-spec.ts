@@ -9,14 +9,8 @@ import type {
   LocalConfig,
   JsonGenerator,
 } from "../types";
-import type { CountSpec } from "./count";
-import {
-  success,
-  error,
-  resolveCount,
-  pushDepth,
-  popDepth,
-} from "../utils/generator-utils";
+import { Count } from "./count";
+import { success, error, pushDepth, popDepth } from "../utils/generator-utils";
 import { NumberSpec } from "./number-spec";
 import { processTemplate, isTemplate } from "../template";
 
@@ -28,7 +22,7 @@ import { processTemplate, isTemplate } from "../template";
  */
 export class ArraySpec implements JsonGenerator<JsonValue[]> {
   constructor(
-    public readonly count: CountSpec,
+    public readonly count: Count,
     public readonly elementSpec:
       | string
       | number
@@ -41,7 +35,12 @@ export class ArraySpec implements JsonGenerator<JsonValue[]> {
    * Creates an ArraySpec from a specification object.
    */
   static fromSpec(spec: {
-    count: CountSpec;
+    count:
+      | Count
+      | number
+      | { fixed: number }
+      | { range: [number, number] }
+      | [number, number];
     of:
       | string
       | number
@@ -49,7 +48,9 @@ export class ArraySpec implements JsonGenerator<JsonValue[]> {
       | { min: number; max: number; integer?: boolean }
       | { ref: string };
   }): ArraySpec {
-    return new ArraySpec(spec.count, spec.of);
+    const count =
+      spec.count instanceof Count ? spec.count : Count.from(spec.count);
+    return new ArraySpec(count, spec.of);
   }
 
   /**
@@ -60,7 +61,7 @@ export class ArraySpec implements JsonGenerator<JsonValue[]> {
     localConfig?: LocalConfig
   ): GenerationResult<JsonValue[]> {
     try {
-      const itemCount = resolveCount(this.count, config);
+      const itemCount = this.count.resolve(config);
       const result: JsonValue[] = [];
 
       for (let i = 0; i < itemCount; i++) {
@@ -148,8 +149,6 @@ export class ArraySpec implements JsonGenerator<JsonValue[]> {
         ? JSON.stringify(this.elementSpec)
         : String(this.elementSpec);
 
-    return `ArraySpec(count: ${JSON.stringify(
-      this.count
-    )}, element: ${elementType})`;
+    return `ArraySpec(count: ${this.count.toString()}, element: ${elementType})`;
   }
 }

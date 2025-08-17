@@ -12,40 +12,6 @@ import type {
   LocalConfig,
 } from "../types";
 import { Arguments, ArgumentsType } from "./arguments";
-import type { CountSpec } from "../type-spec/count";
-
-/**
- * Parses a count specification and returns the actual count to generate.
- *
- * @param countSpec The count specification (number, fixed, or range)
- * @param config Generator configuration for random number generation
- * @returns The resolved count value
- */
-export function resolveCount(
-  countSpec: CountSpec,
-  config: GeneratorConfig
-): number {
-  if (typeof countSpec === "number") {
-    return countSpec;
-  }
-
-  // Handle array format [min, max] from Rust examples
-  if (Array.isArray(countSpec)) {
-    const [min, max] = countSpec;
-    return Math.floor(config.faker.number.float({ min, max: max + 1 }));
-  }
-
-  if ("fixed" in countSpec) {
-    return countSpec.fixed;
-  }
-
-  if ("range" in countSpec) {
-    const [min, max] = countSpec.range;
-    return Math.floor(config.faker.number.float({ min, max: max + 1 }));
-  }
-
-  throw new Error(`Invalid count specification: ${JSON.stringify(countSpec)}`);
-}
 
 /**
  * Creates a success result.

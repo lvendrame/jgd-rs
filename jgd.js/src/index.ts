@@ -10,11 +10,7 @@ export { Jgd, generateFromString, generateFromFile } from "./type-spec/jgd";
 
 // New structured type exports that mirror Rust exactly
 export { Entity } from "./type-spec/entity";
-export {
-  Count,
-  resolveCount as resolveCountSpec,
-  type CountSpec,
-} from "./type-spec/count";
+export { Count, type CountSpec } from "./type-spec/count";
 
 // Type exports from type-spec modules
 export type { FieldSpec } from "./type-spec/field";
@@ -34,7 +30,6 @@ export type {
 export {
   success,
   error,
-  resolveCount,
   parseArguments,
   getStringFromArgs,
   getNumberFromArgs,
