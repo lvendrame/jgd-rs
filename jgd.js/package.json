@@ -1,0 +1,27 @@
+{
+  "name": "jgd.js",
+  "version": "0.2.0",
+  "description": "A simple TypeScript library for generating realistic JSON data using declarative schema definitions",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lvendrame/jgd-rs.git"
+  },
+  "keywords": [
+    "json",
+    "fake",
+    "faker",
+    "jgd",
+    "file",
+    "mock"
+  ],
+  "author": "Luis Vendrame <lvendrame@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/lvendrame/jgd-rs/issues"
+  },
+  "homepage": "https://github.com/lvendrame/jgd-rs#readme"
+}
