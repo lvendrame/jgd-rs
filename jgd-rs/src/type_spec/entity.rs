@@ -375,7 +375,7 @@ impl JsonGenerator for Entity {
         let rng = self.seed.map(StdRng::seed_from_u64);
 
         let mut local_config =
-            LocalConfig::from_current_with_config(rng, count_items, local_config);
+            LocalConfig::from_current_with_config(rng, Some(count_items), local_config);
 
         let mut _attempts = 0;
         const MAX_ATTEMPTS: usize = 1000; // Prevent infinite loops
@@ -535,7 +535,7 @@ impl JsonGenerator for IndexMap<String, Entity> {
     fn generate(&self, config: &mut super::GeneratorConfig, local_config: Option<&mut LocalConfig>
         ) -> Result<Value, JgdGeneratorError> {
         let mut local_config =
-            LocalConfig::from_current_with_config(None, 0, local_config);
+            LocalConfig::from_current_with_config(None, None, local_config);
 
         let mut map = serde_json::Map::new();
         for (name, entity) in self {

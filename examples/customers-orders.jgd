@@ -2,7 +2,7 @@
   "$format": "jgd/v1",
   "version": "1.0.0",
   "seed": 20250812,
-  "defaultLocale": "en_US",
+  "defaultLocale": "EN",
   "entities": {
     "customers": {
       "count": 20,

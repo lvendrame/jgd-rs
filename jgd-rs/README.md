@@ -15,6 +15,8 @@ A simple Rust library for generating realistic JSON data using declarative schem
 - 🏭 **Faker Integration**: Built-in fake data generation using faker patterns
 - ⚙️ **Flexible Counts**: Generate fixed or random counts of data
 - 🔧 **Optional Fields**: Probability-based field generation
+- 🔑 **Custom Keys**: User-defined custom key functions for specialized data generation
+- 📊 **Context-Aware Keys**: Built-in support for index, count, entity.name, and field.name keys
 
 ## Installation
 
@@ -41,7 +43,8 @@ let schema = r#"{
   "version": "1.0.0",
   "root": {
     "fields": {
-      "name": "${name.firstName}",
+      "id": "${ulid}",
+      "name": "${name.firstName} ${name.lastName}",
       "email": "${internet.safeEmail}",
       "age": {
         "number": {
@@ -52,15 +55,96 @@ let schema = r#"{
       }
     }
   }
+}
+```
+
+### Multi-Entity Schema with Proper Structure
+
+```json
+{
+  "$format": "jgd/v1",
+  "version": "1.0.0",
+  "seed": 12345,
+  "entities": {
+    "users": {
+      "count": 3,
+      "fields": {
+        "id": "${index}",
+        "name": "${name.fullName}",
+        "email": "${internet.safeEmail}",
+        "summary": "User ${index} of ${count}",
+        "details": "${field.name} of ${entity.name}"
+      }
+    },
+    "posts": {
+      "count": 10,
+      "fields": {
+        "id": "${uuid.v4}",
+        "userId": {
+          "ref": "users.id"
+        },
+        "title": "${lorem.sentence(3,7)}",
+        "content": "${lorem.paragraphs(2,4)}",
+        "summary": "${index} of ${count}",
+        "tags": {
+          "array": {
+            "count": [1, 5],
+            "of": "${lorem.word}"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### Using Custom Keys
+
+````rust
+use jgd_rs::{Jgd, Arguments};
+use serde_json::Value;
+use std::sync::Arc;
+
+// Register custom key functions
+Jgd::add_custom_key("custom.uuid", Arc::new(|_args: Arguments| {
+    Ok(Value::String(uuid::Uuid::new_v4().to_string()))
+}));
+
+Jgd::add_custom_key("custom.status", Arc::new(|args: Arguments| {
+    let statuses = ["active", "inactive", "pending"];
+    let index = match args {
+        Arguments::Fixed(n) => n.parse::<usize>().unwrap_or(0) % statuses.len(),
+        _ => 0
+    };
+    Ok(Value::String(statuses[index].to_string()))
+}));
+
+let schema = r#"{
+  "$format": "jgd/v1",
+  "version": "1.0.0",
+  "entities": {
+    "users": {
+      "count": 5,
+      "fields": {
+        "id": "${custom.uuid}",
+        "status": "${custom.status(${index})}",
+        "position": "${index} of ${count}"
+      }
+    }
+  }
 }"#;
 
-let json_data = generate_jgd_from_str(schema);
+let result = Jgd::from(schema).generate().unwrap();
+println!("{}", serde_json::to_string_pretty(&result).unwrap());
+```"#;
+
+let json_data = generate_jgd_from_str(schema).unwrap();
 println!("{}", serde_json::to_string_pretty(&json_data).unwrap());
 
 // Generate from file
 let file_path = PathBuf::from("schema.jgd");
-let json_data = generate_jgd_from_file(&file_path);
-```
+let json_data = generate_jgd_from_file(&file_path).unwrap();
+````
 
 ### Advanced Usage with Jgd Struct
 
@@ -92,7 +176,7 @@ let schema = r#"{
 let jgd = Jgd::from(schema);
 
 // Generate data
-let result = jgd.generate();
+let result = jgd.generate().unwrap();
 ```
 
 ## Schema Modes
@@ -206,12 +290,73 @@ Generate multiple named entities with relationships:
 
 #### Array Generation
 
+Arrays are **only for primitive values** (strings, numbers, booleans):
+
 ```json
 {
   "tags": {
     "array": {
       "count": [1, 5],
       "of": "${lorem.word}"
+    }
+  },
+  "scores": {
+    "array": {
+      "count": 3,
+      "of": {
+        "number": {
+          "min": 0,
+          "max": 100,
+          "integer": true
+        }
+      }
+    }
+  },
+  "flags": {
+    "array": {
+      "count": 2,
+      "of": "${boolean.boolean(70)}"
+    }
+  }
+}
+```
+
+**Note:** For objects or lists of objects, use entities with `fields` and `count` properties instead of arrays.
+
+#### Entity Generation
+
+Entities are for objects (single or multiple):
+
+**Single Object:**
+
+```json
+{
+  "profile": {
+    "fields": {
+      "bio": "${lorem.paragraph(1,3)}",
+      "avatar": "${internet.url}",
+      "settings": {
+        "fields": {
+          "theme": "${lorem.word}",
+          "notifications": true
+        }
+      }
+    }
+  }
+}
+```
+
+**List of Objects (use count):**
+
+```json
+{
+  "comments": {
+    "count": [2, 5],
+    "fields": {
+      "id": "${uuid.v4}",
+      "text": "${lorem.sentence(5,15)}",
+      "author": "${name.fullName}",
+      "createdAt": "${chrono.dateTime}"
     }
   }
 }
@@ -257,6 +402,130 @@ Generate multiple named entities with relationships:
 ## Fake Data Generation
 
 The library uses faker patterns to generate realistic data. All template strings use the `${category.method}` format:
+
+### Context-Aware Keys
+
+The library provides built-in context-aware keys that give information about the current generation context:
+
+#### Index Key
+
+- `index` - Current item index (1-based) at the current entity level
+- `index(depth)` - Item index at a specific depth level
+  - `index(1)` - Current entity level (default)
+  - `index(2)` - Parent entity level
+  - `index(3)` - Grandparent entity level, etc.
+
+#### Other Context Keys
+
+- `count` - Total count of items being generated for the current entity
+- `entity.name` - Name of the current entity being generated
+- `field.name` - Name of the current field being generated
+
+#### Context Keys Examples
+
+```json
+{
+  "$format": "jgd/v1",
+  "version": "1.0.0",
+  "entities": {
+    "users": {
+      "count": 3,
+      "fields": {
+        "id": "${index}", // 1, 2, 3
+        "summary": "${index} of ${count}", // "1 of 3", "2 of 3", etc.
+        "context": "${field.name} in ${entity.name}", // "context in users"
+        "profile": {
+          "fields": {
+            "bio": "${lorem.paragraph(1,2)}",
+            "avatar": "${internet.domainSuffix}",
+            "settings": {
+              "fields": {
+                "theme": "${lorem.word}",
+                "notifications": true
+              }
+            }
+          }
+        },
+        "posts": {
+          "count": [2, 4],
+          "fields": {
+            "id": "${uuid.v4}",
+            "userId": "${index(2)}", // References parent user index (depth 2)
+            "title": "${lorem.sentence(5,10)}",
+            "postNumber": "${index}", // 1, 2, 3, 4 (post level - depth 1)
+            "summary": "Post ${index} for user ${index(2)}",
+            "comments": {
+              "count": [1, 3],
+              "fields": {
+                "id": "${uuid.v4}",
+                "postId": "${index(2)}", // References parent post index (depth 2)
+                "userId": "${index(3)}", // References grandparent user index (depth 3)
+                "text": "${lorem.sentence(3,10)}",
+                "position": "Comment ${index} on post ${index(2)} by user ${index(3)}"
+              }
+            }
+          }
+        },
+        "tags": {
+          "array": {
+            "count": [1, 5],
+            "of": "${lorem.word}"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+**Important Notes:**
+
+- `${index}` only works when there's a `count` property (generates multiple items)
+- `${index(2)}` references the parent entity's index (only when parent has count)
+- `${index(3)}` references the grandparent entity's index (only when grandparent has count)
+- Single objects without `count` (like `profile`, `settings`) don't create new depth levels
+- Arrays are only for primitives - use entities with `count` for objects
+
+### Custom Keys
+
+You can register custom key functions to extend the data generation capabilities:
+
+```rust
+use jgd_rs::{Jgd, Arguments};
+use serde_json::Value;
+use std::sync::Arc;
+
+// Register a custom key function
+Jgd::add_custom_key("custom.timestamp", Arc::new(|args: Arguments| {
+    let timestamp = match args {
+        Arguments::None => chrono::Utc::now().timestamp(),
+        Arguments::Fixed(offset) => {
+            let offset: i64 = offset.parse().unwrap_or(0);
+            chrono::Utc::now().timestamp() + offset
+        },
+        Arguments::Range(start, end) => {
+            let start: i64 = start.parse().unwrap_or(0);
+            let end: i64 = end.parse().unwrap_or(0);
+            start + (end - start) / 2  // Simple midpoint
+        }
+    };
+    Ok(Value::Number(timestamp.into()))
+}));
+
+// Use the custom key in your schema
+let schema = r#"{
+  "$format": "jgd/v1",
+  "version": "1.0.0",
+  "root": {
+    "fields": {
+      "createdAt": "${custom.timestamp}",
+      "scheduledFor": "${custom.timestamp(3600)}"
+    }
+  }
+}"#;
+
+let result = Jgd::from(schema).generate().unwrap();
+```
 
 ### Supported Categories
 
@@ -548,8 +817,8 @@ let schema_with_seed = r#"{
 let jgd1 = Jgd::from(schema_with_seed);
 let jgd2 = Jgd::from(schema_with_seed);
 
-let result1 = jgd1.generate();
-let result2 = jgd2.generate();
+let result1 = jgd1.generate().unwrap();
+let result2 = jgd2.generate().unwrap();
 
 // result1 == result2 (same seed produces identical output)
 ```
@@ -558,13 +827,13 @@ let result2 = jgd2.generate();
 
 ### Library Functions
 
-#### `generate_jgd_from_str(schema: &str) -> Value`
+#### `generate_jgd_from_str(schema: &str) -> Result<Value, JgdGeneratorError>`
 
-Generate JSON data from a schema string.
+Generate JSON data from a schema string. Returns a `Result` containing the generated JSON data or an error if generation fails.
 
-#### `generate_jgd_from_file(path: &PathBuf) -> Value`
+#### `generate_jgd_from_file(path: &PathBuf) -> Result<Value, JgdGeneratorError>`
 
-Generate JSON data from a schema file.
+Generate JSON data from a schema file. Returns a `Result` containing the generated JSON data or an error if the file cannot be read or generation fails.
 
 ### Jgd Struct
 
@@ -584,13 +853,31 @@ Parse a schema from a JSON value.
 
 Load a schema from a file.
 
-#### `jgd.generate() -> Value`
+#### `jgd.generate() -> Result<Value, JgdGeneratorError>`
 
-Generate JSON data according to the schema.
+Generate JSON data according to the schema. Returns a `Result` containing the generated JSON data or an error if generation fails.
 
 #### `jgd.create_config() -> GeneratorConfig`
 
 Create a generator configuration from the schema settings.
+
+#### `Jgd::add_custom_key(key: &str, function: Arc<CustomKeyFunction>)`
+
+Register a custom key function that can be used in templates. The function receives parsed arguments and returns a `Result<Value, String>`.
+
+### Custom Key Functions
+
+Custom key functions have the signature:
+
+```rust
+Arc<dyn Fn(Arguments) -> Result<Value, String> + Send + Sync>
+```
+
+Where `Arguments` can be:
+
+- `Arguments::None` - No arguments provided
+- `Arguments::Fixed(String)` - Single argument value
+- `Arguments::Range(String, String)` - Two arguments (start, end)
 
 ### Schema Fields
 

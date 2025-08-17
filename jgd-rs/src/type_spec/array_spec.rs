@@ -278,7 +278,7 @@ impl JsonGenerator for ArraySpec {
         let mut arr = Vec::with_capacity(count_items as usize);
 
         let mut local_config =
-            LocalConfig::from_current_with_config(None, count_items, local_config);
+            LocalConfig::from_current_with_config(None, Some(count_items), local_config);
 
         for i in 0..count_items {
             local_config.set_index(i as usize);

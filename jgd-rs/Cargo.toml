@@ -1,6 +1,6 @@
 [package]
 name = "jgd-rs"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 description = "A powerful Rust library for generating realistic JSON data using declarative schema definitions"
 license = "MIT"

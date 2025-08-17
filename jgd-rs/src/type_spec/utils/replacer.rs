@@ -556,7 +556,7 @@ impl ReplacerCollection {
 
         let (entity_name, field_name) = if let Some(local_config) = &local_config {
             let entity_name = local_config.entity_name.clone();
-            let field_name = local_config.entity_name.clone();
+            let field_name = local_config.field_name.clone();
             (entity_name, field_name)
         } else {
             (None, None)

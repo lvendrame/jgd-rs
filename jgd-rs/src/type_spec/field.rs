@@ -195,7 +195,7 @@ impl Field {
 
         let (entity_name, field_name) = if let Some(local_config) = local_config {
             let entity_name = local_config.entity_name.clone();
-            let field_name = local_config.entity_name.clone();
+            let field_name = local_config.field_name.clone();
             (entity_name, field_name)
         } else {
             (None, None)
@@ -311,7 +311,7 @@ impl JsonGenerator for IndexMap<String, Field> {
     fn generate(&self, config: &mut super::GeneratorConfig, local_config: Option<&mut LocalConfig>
         ) -> Result<Value, JgdGeneratorError> {
 
-        let mut local_config = LocalConfig::from_current_with_config(None, 0, local_config);
+        let mut local_config = LocalConfig::from_current_with_config(None, None, local_config);
 
         let mut map = serde_json::Map::new();
         for (key, field) in self {

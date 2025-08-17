@@ -65,25 +65,40 @@ impl LocalConfig {
 
     pub fn from_current_with_config(
         rng: Option<StdRng>,
-        count_items: u64,
+        count_items: Option<u64>,
         parent_config: Option<&mut LocalConfig>,
     ) -> Self {
+
         if let Some(config) = parent_config {
+            // ensure to have new depth of index only if we have an existing count
+            let (count_items, index) = if let Some(count_items) = count_items {
+                (count_items, Some(0))
+            } else {
+                (config.count_items, None)
+            };
+
             let rng = if rng.is_some() {
                 rng
             } else {
                 config.rng.clone()
             };
             return Self::from_current(
-                rng, count_items,
+                rng,
+                count_items,
                 config.entity_name.as_deref(),
                 config.field_name.as_deref(),
-                Some(0),
+                index,
                 Some(&config.indices)
             );
         }
 
-        Self::from_current(rng, count_items, None, None, Some(0), None)
+        let (count_items, index) = if let Some(count_items) = count_items {
+            (count_items, Some(0))
+        } else {
+            (1, None)
+        };
+
+        Self::from_current(rng, count_items, None, None, index, None)
     }
 
     pub fn get_index(&self, depth: usize) -> Option<usize> {
@@ -102,8 +117,8 @@ impl LocalConfig {
     pub fn process_key(&self, replacer: &Replacer) -> Option<Value> {
         match replacer.key.as_str() {
             INDEX_KEY => {
-                let depth = replacer.arguments.get_number(0);
-                self.get_index(depth).map(|value| Value::Number(value.into()))
+                let depth = replacer.arguments.get_number(1) - 1;
+                self.get_index(depth).map(|value| Value::Number((value + 1).into()))
             },
             COUNT_KEY => Some(Value::Number(self.count_items.into())),
             ENTITY_NAME_KEY => self.entity_name.clone().map(Value::String),
