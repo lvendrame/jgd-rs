@@ -33,7 +33,7 @@ describe("Jgd", () => {
     });
 
     test("should load schema from file", () => {
-      const filePath = "./examples/single-user.jgd";
+      const filePath = "../examples/single-user.jgd";
 
       // For this test, we'll create the schema inline instead of reading from file
       const schema = `{

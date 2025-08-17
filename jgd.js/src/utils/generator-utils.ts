@@ -5,12 +5,7 @@
  * operations used throughout the JGD system.
  */
 
-import type {
-  GenerationResult,
-  JsonValue,
-  GeneratorConfig,
-  LocalConfig,
-} from "../types";
+import type { GenerationResult, JsonValue, GeneratorConfig } from "../types";
 import { Arguments, ArgumentsType } from "./arguments";
 
 /**
