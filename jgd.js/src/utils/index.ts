@@ -1,7 +1,7 @@
 /**
- * Utils module exports - equivalent to Rust mod.rs
+ * Utils module - exports all utility classes and functions.
  */
 
-export { Arguments, ArgumentsType } from "./arguments";
+export { Arguments } from "./arguments";
 export { Replacer } from "./replacer";
 export * from "./generator-utils";

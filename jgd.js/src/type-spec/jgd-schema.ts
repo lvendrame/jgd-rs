@@ -250,16 +250,3 @@ export class Jgd {
     return `Jgd(format: ${this.format}, version: ${this.version}, mode: ${mode}, entities: ${entityCount})`;
   }
 }
-
-/**
- * Legacy type alias for backward compatibility.
- * @deprecated Use Jgd class instead
- */
-export type JgdSchema = {
-  $format: string;
-  version: string;
-  seed?: number;
-  defaultLocale?: string;
-  entities?: Record<string, any>;
-  root?: any;
-};

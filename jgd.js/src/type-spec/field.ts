@@ -12,8 +12,8 @@ import type {
 import { NumberSpecInput } from "./number-spec";
 import { ArraySpecInput } from "./array-spec";
 import { OptionalSpecInput } from "./optional-spec";
-import type { EntitySpec } from "./entity-spec";
-import { success, error, pushDepth, popDepth } from "../utils/generator-utils";
+import type { Entity } from "./entity-spec";
+import { success, error } from "../utils/generator-utils";
 import { NumberSpec } from "./number-spec";
 import { ArraySpec } from "./array-spec";
 import { Replacer } from "../utils/replacer";
@@ -29,7 +29,7 @@ export type FieldSpec =
   | NumberSpecInput
   | ArraySpecInput
   | OptionalSpecInput
-  | EntitySpec
+  | Entity
   | { ref: string }
   | { array: ArraySpecInput };
 
@@ -132,11 +132,10 @@ export class FieldGenerator implements JsonGenerator<JsonValue> {
       return this.handleReference(spec.ref, config, localConfig);
     }
 
-    // Handle EntitySpec (nested object with fields)
+    // Handle Entity (nested object with fields)
     if ("fields" in spec) {
-      const { EntityGenerator } = require("./entity");
-      const entityGenerator = new EntityGenerator(spec as EntitySpec);
-      return entityGenerator.generate(config, localConfig);
+      const entity = spec as Entity;
+      return entity.generate(config, localConfig);
     }
 
     return error(`Unknown object field specification: ${JSON.stringify(spec)}`);

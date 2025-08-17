@@ -9,8 +9,8 @@
 export { Jgd, generateFromString, generateFromFile } from "./type-spec/jgd";
 
 // New structured type exports that mirror Rust exactly
-export { Entity, type EntitySpec } from "./type-spec/entity-spec";
-export { Jgd as JgdClass, type JgdSchema } from "./type-spec/jgd-schema";
+export { Entity } from "./type-spec/entity-spec";
+export { Jgd as JgdClass } from "./type-spec/jgd-schema";
 export {
   Count,
   resolveCount as resolveCountSpec,
@@ -66,7 +66,6 @@ export { NumberSpec } from "./type-spec/number-spec";
 export { ArraySpec } from "./type-spec/array-spec";
 export { OptionalSpec } from "./type-spec/optional-spec";
 export { FieldGenerator } from "./type-spec/field";
-export { EntityGenerator } from "./type-spec/entity";
 
 // Utility class exports
 export { Replacer, Arguments } from "./utils";

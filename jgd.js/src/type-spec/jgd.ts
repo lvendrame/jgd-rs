@@ -7,20 +7,19 @@
 import * as fs from "fs";
 import * as path from "path";
 import type { JsonValue, GenerationResult, CustomKeyFunction } from "../types";
-import type { JgdSchema } from "./jgd-schema";
-import type { EntitySpec } from "./entity-spec";
+import type { Entity } from "./entity-spec";
+import { Jgd as JgdClass } from "./jgd-schema";
 import { success, error, validateSchemaMode } from "../utils/generator-utils";
 import {
   createConfigWithGlobalKeys,
   addCustomKey as globalAddCustomKey,
 } from "../config";
-import { EntityGenerator } from "./entity";
 
 /**
  * Main JGD class for loading and executing JSON generation schemas.
  */
 export class Jgd {
-  constructor(public readonly schema: JgdSchema) {
+  constructor(public readonly schema: JgdClass) {
     // Validate schema mode
     validateSchemaMode(schema.root, schema.entities);
   }
@@ -30,8 +29,8 @@ export class Jgd {
    */
   static from(schemaString: string): Jgd {
     try {
-      const schema = JSON.parse(schemaString) as JgdSchema;
-      return new Jgd(schema);
+      const schema = JSON.parse(schemaString) as any;
+      return new Jgd(JgdClass.fromSchema(schema));
     } catch (err) {
       throw new Error(
         `Failed to parse JGD schema: ${
@@ -61,8 +60,8 @@ export class Jgd {
   /**
    * Creates a JGD instance from a schema object.
    */
-  static fromObject(schema: JgdSchema): Jgd {
-    return new Jgd(schema);
+  static fromObject(schema: any): Jgd {
+    return new Jgd(JgdClass.fromSchema(schema));
   }
 
   /**
@@ -78,14 +77,13 @@ export class Jgd {
   generate(): GenerationResult<JsonValue> {
     try {
       const config = createConfigWithGlobalKeys(
-        this.schema.defaultLocale || "EN",
+        this.schema.default_locale || "EN",
         this.schema.seed
       );
 
       // Handle root mode
       if (this.schema.root) {
-        const rootGenerator = new EntityGenerator(this.schema.root);
-        return rootGenerator.generate(config);
+        return this.schema.root.generate(config);
       }
 
       // Handle entities mode
@@ -95,8 +93,8 @@ export class Jgd {
         for (const [entityName, entitySpec] of Object.entries(
           this.schema.entities
         )) {
-          const entityGenerator = new EntityGenerator(entitySpec);
-          const entityResult = entityGenerator.generate(config, { entityName });
+          const entity = entitySpec as Entity;
+          const entityResult = entity.generate(config, { entityName });
 
           if (!entityResult.success) {
             return error(
@@ -125,7 +123,7 @@ export class Jgd {
    * Gets the schema format version.
    */
   getFormat(): string {
-    return this.schema.$format;
+    return this.schema.format;
   }
 
   /**
@@ -139,7 +137,7 @@ export class Jgd {
    * Gets the default locale.
    */
   getDefaultLocale(): string {
-    return this.schema.defaultLocale || "EN";
+    return this.schema.default_locale || "EN";
   }
 
   /**
@@ -166,21 +164,21 @@ export class Jgd {
   /**
    * Gets the root entity specification (only in root mode).
    */
-  getRootEntity(): EntitySpec | undefined {
+  getRootEntity(): Entity | undefined {
     return this.schema.root;
   }
 
   /**
    * Gets all entity specifications (only in entities mode).
    */
-  getEntities(): Record<string, EntitySpec> | undefined {
+  getEntities(): Record<string, Entity> | undefined {
     return this.schema.entities;
   }
 
   /**
    * Gets a specific entity specification by name (only in entities mode).
    */
-  getEntity(name: string): EntitySpec | undefined {
+  getEntity(name: string): Entity | undefined {
     return this.schema.entities?.[name];
   }
 
@@ -193,7 +191,7 @@ export class Jgd {
       ? Object.keys(this.schema.entities!).length
       : 1;
 
-    return `Jgd(format: ${this.schema.$format}, version: ${this.schema.version}, mode: ${mode}, entities: ${entityCount})`;
+    return `Jgd(format: ${this.schema.format}, version: ${this.schema.version}, mode: ${mode}, entities: ${entityCount})`;
   }
 
   /**
@@ -202,7 +200,7 @@ export class Jgd {
   validate(): GenerationResult<boolean> {
     try {
       // Basic format validation
-      if (!this.schema.$format) {
+      if (!this.schema.format) {
         return error("Schema missing required $format field");
       }
 
@@ -218,7 +216,8 @@ export class Jgd {
         for (const [entityName, entitySpec] of Object.entries(
           this.schema.entities
         )) {
-          if (!entitySpec.fields || typeof entitySpec.fields !== "object") {
+          const entity = entitySpec as Entity;
+          if (!entity.fields || typeof entity.fields !== "object") {
             return error(
               `Entity '${entityName}' missing or invalid fields specification`
             );

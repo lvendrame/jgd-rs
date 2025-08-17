@@ -19,7 +19,6 @@ import {
   popDepth,
 } from "../utils/generator-utils";
 import { NumberSpec } from "./number-spec";
-import { Replacer } from "../utils/replacer";
 import { processTemplate, isTemplate } from "../template";
 
 /**
