@@ -1,4 +1,12 @@
 use rand::rngs::StdRng;
+use serde_json::Value;
+
+use crate::{Replacer};
+
+const INDEX_KEY: &str = "index";
+const COUNT_KEY: &str = "count";
+const ENTITY_NAME_KEY: &str = "entity.name";
+const FIELD_NAME_KEY: &str = "field.name";
 
 pub struct LocalConfig {
     /// Random number generator for deterministic or random generation.
@@ -88,6 +96,19 @@ impl LocalConfig {
     pub fn set_index(&mut self, index: usize) {
         if !self.indices.is_empty() {
             self.indices[0] = index;
+        }
+    }
+
+    pub fn process_key(&self, replacer: &Replacer) -> Option<Value> {
+        match replacer.key.as_str() {
+            INDEX_KEY => {
+                let depth = replacer.arguments.get_number(0);
+                self.get_index(depth).map(|value| Value::Number(value.into()))
+            },
+            COUNT_KEY => Some(Value::Number(self.count_items.into())),
+            ENTITY_NAME_KEY => self.entity_name.clone().map(Value::String),
+            FIELD_NAME_KEY => self.field_name.clone().map(Value::String),
+            _ => None,
         }
     }
 }

@@ -376,7 +376,7 @@ impl Jgd {
         }
     }
 
-    pub fn get_custom_key(key: &'static str) -> Option<CustomKeyFunction> {
+    pub fn get_custom_key(key: &str) -> Option<CustomKeyFunction> {
         if let Ok(config) = GLOBAL_CONFIG.lock() {
             if let Some(func) = config.custom_keys.get(key) {
                 return Some(func.clone());

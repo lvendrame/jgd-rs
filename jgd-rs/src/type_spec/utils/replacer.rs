@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 use regex::Regex;
 use serde_json::Value;
 
-use crate::{type_spec::GeneratorConfig, JgdGeneratorError, LocalConfig};
+use crate::{type_spec::GeneratorConfig, Arguments, Jgd, JgdGeneratorError, LocalConfig};
 
 /// Global regex pattern for matching JGD fake data placeholders.
 ///
@@ -84,6 +84,8 @@ pub struct Replacer {
     /// - `number.integer(1..100)` (with range arguments)
     pub pattern: String,
 
+    pub arguments: Arguments,
+
     /// The complete original placeholder tag from the template.
     ///
     /// This is the full matched text including `${` and `}` delimiters.
@@ -141,9 +143,77 @@ impl Replacer {
 
         let arguments = captures.get(3).map_or("".to_string(), |m| m.as_str().to_string());
 
-        let pattern = format!("{}{}", key, arguments);
+        let pattern = format!("{}{}", key, arguments.clone());
 
-        Self { start, end, length, key, pattern, tag }
+        let arguments = Arguments::from(arguments.as_str());
+
+        Self { start, end, length, key, pattern, arguments, tag }
+    }
+
+    pub fn generate_value(&self, config: &mut GeneratorConfig, local_config: Option<&mut LocalConfig>
+        ) -> Result<Value, String> {
+        if let Some(local_config) = local_config {
+            let value = local_config.process_key(self);
+            if let Some(value) = value {
+                return Ok(value);
+            }
+        }
+
+        if let Some(func) = &Jgd::get_custom_key(&self.key) {
+            return func(self.arguments.clone());
+        }
+
+        if config.fake_keys.contains_key(&self.key) {
+            return config.fake_generator.generate_by_key(self, &mut config.rng);
+        }
+
+        Err(format!("Error to process the pattern {}", self.tag))
+    }
+}
+
+impl From<&str> for Replacer {
+    /// Creates a `Replacer` from a string pattern for testing purposes.
+    ///
+    /// This implementation is primarily intended for unit tests where you need to create
+    /// a `Replacer` instance from a simple pattern string without going through the
+    /// full regex parsing process.
+    ///
+    /// # Arguments
+    ///
+    /// * `pattern` - A string pattern like "name.firstName" or "lorem.words(5)"
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use jgd_rs::Replacer;
+    ///
+    /// let replacer = Replacer::from("name.firstName");
+    /// assert_eq!(replacer.key, "name.firstName");
+    /// assert_eq!(replacer.pattern, "name.firstName");
+    ///
+    /// let replacer = Replacer::from("lorem.words(5)");
+    /// assert_eq!(replacer.key, "lorem.words");
+    /// assert_eq!(replacer.pattern, "lorem.words(5)");
+    /// ```
+    fn from(pattern: &str) -> Self {
+        // Use the existing regex to parse the pattern
+        if let Some(captures) = RE_FAKES.captures(pattern) {
+            Self::new(&captures)
+        } else {
+            // Fallback for patterns that don't match the regex
+            let arguments = Arguments::from("");
+            let tag = pattern.to_string();
+
+            Self {
+                start: 0,
+                end: tag.len(),
+                length: tag.len(),
+                key: pattern.to_string(),
+                pattern: pattern.to_string(),
+                arguments,
+                tag,
+            }
+        }
     }
 }
 
@@ -370,10 +440,10 @@ impl ReplacerCollection {
     /// - Full replacement is more efficient as it avoids string manipulation
     /// - Partial replacement processes in reverse order to avoid position shifts
     /// - String conversion is performed for all non-string generated values in partial mode
-    pub fn replace(&self, config: &mut GeneratorConfig, local_config: Option<&mut LocalConfig>
+    pub fn replace(&self, config: &mut GeneratorConfig, mut local_config: Option<&mut LocalConfig>
         ) -> Result<Value, JgdGeneratorError> {
 
-        let (entity_name, field_name) = if let Some(local_config) = local_config {
+        let (entity_name, field_name) = if let Some(local_config) = &local_config {
             let entity_name = local_config.entity_name.clone();
             let field_name = local_config.entity_name.clone();
             (entity_name, field_name)
@@ -381,35 +451,34 @@ impl ReplacerCollection {
             (None, None)
         };
 
-        let mut value = self.value.clone();
         if self.full_replace {
             let replacer = self.get_full_replacer();
-            if config.fake_keys.contains_key(&replacer.key) {
-                return Ok(config.fake_generator.generate_by_key(&replacer.pattern, &mut config.rng));
-            }
+            let value = replacer.generate_value(config, local_config);
 
-            return Err(JgdGeneratorError {
-                message: format!("Error to process the pattern {}", replacer.pattern),
+            return value.map_err(|message| JgdGeneratorError {
+                message,
                 entity: entity_name,
                 field: field_name,
             });
         }
 
+        let mut value = self.value.clone();
         for replacer in self.collection.iter().rev() {
-            if config.fake_keys.contains_key(&replacer.key) {
-                let new_value = config.fake_generator.generate_by_key(&replacer.key, &mut config.rng);
-                let new_value = if let Value::String(value) = new_value {
-                    value
-                } else {
-                    new_value.to_string()
-                };
-                value.replace_range(replacer.start..replacer.end, &new_value);
-            } else {
-               return Err(JgdGeneratorError {
-                    message: format!("Error to process the pattern {}", replacer.pattern),
+            let new_value = replacer.generate_value(config, local_config.as_deref_mut());
+            match new_value {
+                Ok(new_value) => {
+                    let new_value = if let Value::String(value) = new_value {
+                        value
+                    } else {
+                        new_value.to_string()
+                    };
+                    value.replace_range(replacer.start..replacer.end, &new_value);
+                },
+                Err(message) => return Err(JgdGeneratorError {
+                    message,
                     entity: entity_name,
                     field: field_name,
-                });
+                })
             }
         }
 
@@ -594,7 +663,7 @@ mod tests {
 
         match result {
             Err(error) => {
-                assert_eq!(error.message, "Error to process the pattern invalid.key");
+                assert_eq!(error.message, "Error to process the pattern ${invalid.key}");
             }
             _ => panic!("Expected an error"),
         }
@@ -636,7 +705,7 @@ mod tests {
 
         match result {
             Err(error) => {
-                assert_eq!(error.message, "Error to process the pattern invalid.key");
+                assert_eq!(error.message, "Error to process the pattern ${invalid.key}");
             }
             _ => panic!("Expected an error"),
         }

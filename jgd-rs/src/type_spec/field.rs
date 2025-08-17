@@ -655,7 +655,7 @@ mod tests {
             // The result should either be the template with replacement or the original string
             // Since we can't control the exact replacement logic in this test,
             // we verify it's still a string
-            assert_eq!(error.message, "Error to process the pattern invalid.key".to_string());
+            assert_eq!(error.message, "Error to process the pattern ${invalid.key}".to_string());
         }
     }
 

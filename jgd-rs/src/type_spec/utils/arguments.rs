@@ -29,6 +29,7 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 /// assert_eq!(start, "1");
 /// assert_eq!(end, "10");
 /// ```
+#[derive(Debug, Clone)]
 pub enum Arguments {
     /// No arguments provided (empty parentheses or no parentheses)
     None,

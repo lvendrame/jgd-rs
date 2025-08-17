@@ -2,9 +2,9 @@ use std::{collections::HashMap, sync::Arc};
 
 use serde_json::Value;
 
-use crate::{Arguments, JgdGeneratorError};
+use crate::{Arguments};
 
-pub type CustomKeyFunction = Arc<dyn (Fn(Arguments) -> Result<Value, JgdGeneratorError>) + Send + Sync + 'static>;
+pub type CustomKeyFunction = Arc<dyn (Fn(Arguments) -> Result<Value, String>) + Send + Sync + 'static>;
 
 #[derive(Default)]
 pub struct JgdGlobalConfig {
