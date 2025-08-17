@@ -8,8 +8,8 @@ import type {
   GeneratorConfig,
   LocalConfig,
   JsonGenerator,
-  EntitySpec,
 } from "../types";
+import type { EntitySpec } from "./entity-spec";
 import {
   success,
   error,

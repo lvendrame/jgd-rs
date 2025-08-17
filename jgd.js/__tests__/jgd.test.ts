@@ -8,8 +8,9 @@ import {
   isSuccess,
   isError,
   addCustomKey,
+  Arguments,
 } from "../src";
-import type { Arguments, JsonValue } from "../src";
+import type { JsonValue } from "../src";
 
 describe("Jgd", () => {
   describe("Schema Loading", () => {

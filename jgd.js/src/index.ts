@@ -5,22 +5,30 @@
  * Based on the Rust JGD library architecture with TypeScript best practices.
  */
 
-// Main exports
+// Main exports - including new structured classes
 export { Jgd, generateFromString, generateFromFile } from "./type-spec/jgd";
 
-// Type exports
+// New structured type exports that mirror Rust exactly
+export { Entity, type EntitySpec } from "./type-spec/entity-spec";
+export { Jgd as JgdClass, type JgdSchema } from "./type-spec/jgd-schema";
+export {
+  Count,
+  resolveCount as resolveCountSpec,
+  type CountSpec,
+} from "./type-spec/count";
+
+// Type exports from type-spec modules
+export type { NumberSpecInput } from "./type-spec/number-spec";
+export type { ArraySpecInput } from "./type-spec/array-spec";
+export type { OptionalSpecInput } from "./type-spec/optional-spec";
+export type { FieldSpec } from "./type-spec/field";
+
+// Type exports - maintaining backward compatibility with core types only
 export type {
   JsonValue,
   GenerationResult,
   Arguments as ArgumentsType,
   CustomKeyFunction,
-  CountSpec,
-  NumberSpecInput,
-  ArraySpecInput,
-  OptionalSpecInput,
-  FieldSpec,
-  EntitySpec,
-  JgdSchema,
   GeneratorConfig,
   LocalConfig,
   JsonGenerator,
@@ -59,6 +67,8 @@ export { ArraySpec } from "./type-spec/array-spec";
 export { OptionalSpec } from "./type-spec/optional-spec";
 export { FieldGenerator } from "./type-spec/field";
 export { EntityGenerator } from "./type-spec/entity";
+
+// Utility class exports
 export { Replacer, Arguments } from "./utils";
 
 // Template processing exports

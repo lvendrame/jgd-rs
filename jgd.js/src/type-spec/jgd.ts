@@ -6,13 +6,9 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import type {
-  JgdSchema,
-  JsonValue,
-  GenerationResult,
-  CustomKeyFunction,
-  EntitySpec,
-} from "../types";
+import type { JsonValue, GenerationResult, CustomKeyFunction } from "../types";
+import type { JgdSchema } from "./jgd-schema";
+import type { EntitySpec } from "./entity-spec";
 import { success, error, validateSchemaMode } from "../utils/generator-utils";
 import {
   createConfigWithGlobalKeys,

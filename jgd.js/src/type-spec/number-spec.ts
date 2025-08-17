@@ -8,9 +8,17 @@ import type {
   GeneratorConfig,
   LocalConfig,
   JsonGenerator,
-  NumberSpecInput,
 } from "../types";
 import { success, error, validateNumberRange } from "../utils/generator-utils";
+
+/**
+ * Input specification for number generation.
+ */
+export interface NumberSpecInput {
+  min: number;
+  max: number;
+  integer?: boolean;
+}
 
 /**
  * Generates random numbers within a specified range.

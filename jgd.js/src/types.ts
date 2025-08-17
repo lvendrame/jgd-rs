@@ -3,9 +3,21 @@
  *
  * This module contains all the type definitions that mirror the Rust implementation,
  * providing a strongly-typed interface for JSON data generation.
+ *
+ * NOTE: Major structural changes have been made to match Rust architecture:
+ * - EntitySpec interface has been moved to Entity class in type-spec/entity-spec.ts
+ * - JgdSchema interface has been moved to Jgd class in type-spec/jgd-schema.ts
+ * - CountSpec has been moved to Count class in type-spec/count.ts
+ *
+ * The legacy interfaces have been removed to avoid conflicts. Import from the specific
+ * type-spec modules for the new structured classes.
  */
 
 import type { Faker } from "@faker-js/faker";
+import type { Arguments } from "./utils/arguments";
+
+// Re-export Arguments for consistency across the codebase
+export type { Arguments };
 
 /**
  * Represents any JSON-serializable value.
@@ -32,89 +44,11 @@ export type GenerationResult<T = JsonValue> =
     };
 
 /**
- * Arguments passed to custom key functions and pattern generators.
- */
-export type Arguments =
-  | { type: "none" }
-  | { type: "fixed"; value: string }
-  | { type: "range"; min: string; max: string };
-
-/**
  * Custom key function type.
  */
 export type CustomKeyFunction = (
   args: Arguments
 ) => GenerationResult<JsonValue>;
-
-/**
- * Count specification for generating multiple items.
- */
-export type CountSpec =
-  | number
-  | { fixed: number }
-  | { range: [number, number] }
-  | [number, number]; // Support array format from Rust examples
-
-/**
- * Input specification for number generation.
- */
-export interface NumberSpecInput {
-  min: number;
-  max: number;
-  integer?: boolean;
-}
-
-/**
- * Input specification for array generation.
- */
-export interface ArraySpecInput {
-  count: CountSpec;
-  of: string | number | boolean | NumberSpecInput | { ref: string };
-}
-
-/**
- * Input specification for optional fields.
- */
-export interface OptionalSpecInput<T = unknown> {
-  optional: {
-    prob?: number; // 0.0 to 1.0, defaults to 0.5
-    of: T;
-  };
-}
-
-/**
- * Field definition within an entity.
- */
-export type FieldSpec =
-  | string
-  | number
-  | boolean
-  | NumberSpecInput
-  | ArraySpecInput
-  | OptionalSpecInput
-  | EntitySpec
-  | { ref: string }
-  | { array: ArraySpecInput };
-
-/**
- * Entity specification for generating complex objects.
- */
-export interface EntitySpec {
-  count?: CountSpec;
-  fields: Record<string, FieldSpec>;
-}
-
-/**
- * Root JGD schema definition.
- */
-export interface JgdSchema {
-  $format: string;
-  version: string;
-  seed?: number;
-  defaultLocale?: string;
-  root?: EntitySpec;
-  entities?: Record<string, EntitySpec>;
-}
 
 /**
  * Configuration for data generation.

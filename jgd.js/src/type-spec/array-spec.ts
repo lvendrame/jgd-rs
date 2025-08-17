@@ -8,9 +8,9 @@ import type {
   GeneratorConfig,
   LocalConfig,
   JsonGenerator,
-  ArraySpecInput,
-  NumberSpecInput,
 } from "../types";
+import { NumberSpecInput } from "./number-spec";
+import type { CountSpec } from "./count";
 import {
   success,
   error,
@@ -21,6 +21,14 @@ import {
 import { NumberSpec } from "./number-spec";
 import { Replacer } from "../utils/replacer";
 import { processTemplate, isTemplate } from "../template";
+
+/**
+ * Input specification for array generation.
+ */
+export interface ArraySpecInput {
+  count: CountSpec;
+  of: string | number | boolean | NumberSpecInput | { ref: string };
+}
 
 /**
  * Generates arrays of primitive values (strings, numbers, booleans).

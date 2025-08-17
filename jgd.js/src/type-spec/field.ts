@@ -8,17 +8,30 @@ import type {
   GeneratorConfig,
   LocalConfig,
   JsonGenerator,
-  FieldSpec,
-  NumberSpecInput,
-  ArraySpecInput,
-  OptionalSpecInput,
-  EntitySpec,
 } from "../types";
+import { NumberSpecInput } from "./number-spec";
+import { ArraySpecInput } from "./array-spec";
+import { OptionalSpecInput } from "./optional-spec";
+import type { EntitySpec } from "./entity-spec";
 import { success, error, pushDepth, popDepth } from "../utils/generator-utils";
 import { NumberSpec } from "./number-spec";
 import { ArraySpec } from "./array-spec";
 import { Replacer } from "../utils/replacer";
 import { processTemplate, isTemplate } from "../template";
+
+/**
+ * Field definition within an entity.
+ */
+export type FieldSpec =
+  | string
+  | number
+  | boolean
+  | NumberSpecInput
+  | ArraySpecInput
+  | OptionalSpecInput
+  | EntitySpec
+  | { ref: string }
+  | { array: ArraySpecInput };
 
 /**
  * Generates values for any type of field specification.

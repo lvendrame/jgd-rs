@@ -6,13 +6,13 @@
  */
 
 import type {
-  Arguments,
   GenerationResult,
   JsonValue,
   GeneratorConfig,
   LocalConfig,
   CustomKeyFunction,
 } from "../types";
+import { Arguments, ArgumentsType } from "./arguments";
 import {
   success,
   error,
@@ -37,10 +37,16 @@ const FAKER_PATTERN_REGEX = /^\$\{([^}]+)\}$/;
  * Handles placeholder replacement and value generation for JGD patterns.
  */
 export class Replacer {
+  public readonly pattern: string;
+  public readonly args: Arguments;
+
   constructor(
-    public readonly pattern: string,
-    public readonly args: Arguments = { type: "none" }
-  ) {}
+    pattern: string,
+    args: Arguments = new Arguments(ArgumentsType.None)
+  ) {
+    this.pattern = pattern;
+    this.args = args;
+  }
 
   /**
    * Creates a Replacer from a pattern string.
@@ -50,7 +56,7 @@ export class Replacer {
     const match = pattern.match(FAKER_PATTERN_REGEX);
     if (!match) {
       // If it's not a faker pattern, return as is but let the generator handle it
-      return new Replacer(pattern, { type: "none" });
+      return new Replacer(pattern, new Arguments(ArgumentsType.None));
     }
 
     const fullPattern = match[1];
@@ -63,7 +69,7 @@ export class Replacer {
     }
 
     // Simple pattern without arguments
-    return new Replacer(fullPattern, { type: "none" });
+    return new Replacer(fullPattern, new Arguments(ArgumentsType.None));
   }
 
   /**
@@ -212,17 +218,17 @@ export class Replacer {
    */
   private executeFakerMethod(method: Function, args: Arguments): JsonValue {
     switch (args.type) {
-      case "none":
+      case ArgumentsType.None:
         return method();
 
-      case "fixed": {
-        const value = this.parseArgumentValue(args.value);
+      case ArgumentsType.Fixed: {
+        const value = this.parseArgumentValue(args.value || "");
         return method(value);
       }
 
-      case "range": {
-        const min = this.parseArgumentValue(args.min);
-        const max = this.parseArgumentValue(args.max);
+      case ArgumentsType.Range: {
+        const min = this.parseArgumentValue(args.min || "");
+        const max = this.parseArgumentValue(args.max || "");
 
         // For numeric methods, pass as options object
         if (typeof min === "number" && typeof max === "number") {
@@ -287,10 +293,6 @@ export class ArgumentsHelper {
     defaultFirst: string = "",
     defaultSecond: string = ""
   ): [string, string] {
-    if (this.args.type === "range") {
-      return [this.args.min, this.args.max];
-    }
-    const value = this.getString(defaultFirst);
-    return [value, defaultSecond];
+    return this.args.getStringTuple(defaultFirst, defaultSecond);
   }
 }

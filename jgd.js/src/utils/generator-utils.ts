@@ -6,13 +6,13 @@
  */
 
 import type {
-  CountSpec,
-  Arguments,
   GenerationResult,
   JsonValue,
   GeneratorConfig,
   LocalConfig,
 } from "../types";
+import { Arguments, ArgumentsType } from "./arguments";
+import type { CountSpec } from "../type-spec/count";
 
 /**
  * Parses a count specification and returns the actual count to generate.
@@ -66,65 +66,40 @@ export function error<T = JsonValue>(message: string): GenerationResult<T> {
  * For example: "${name.firstName(param1,param2)}" -> Arguments
  */
 export function parseArguments(argsString?: string): Arguments {
-  if (!argsString || argsString.trim() === "") {
-    return { type: "none" };
+  if (!argsString || !argsString.trim()) {
+    return new Arguments(ArgumentsType.None);
   }
 
-  // Check if it's a range pattern like "1,10"
-  const rangeParts = argsString.split(",").map((s) => s.trim());
-  if (rangeParts.length === 2) {
-    return {
-      type: "range",
-      min: rangeParts[0],
-      max: rangeParts[1],
-    };
+  // Handle range format like "(1,10)" or "(1..10)"
+  if (argsString.includes(",") || argsString.includes("..")) {
+    return new Arguments(
+      ArgumentsType.Range,
+      undefined,
+      argsString.split(/[,.]/)[0]?.trim() || "",
+      argsString.split(/[,.]/)[1]?.trim() || ""
+    );
   }
 
-  // Single value
-  return {
-    type: "fixed",
-    value: argsString.trim(),
-  };
+  // Handle fixed value format like "(42)"
+  if (argsString.trim()) {
+    return new Arguments(ArgumentsType.Fixed, argsString.trim());
+  }
+
+  return new Arguments(ArgumentsType.None);
 }
 
 /**
  * Gets a string value from Arguments.
  */
-export function getStringFromArgs(
-  args: Arguments,
-  defaultValue: string = ""
-): string {
-  switch (args.type) {
-    case "none":
-      return defaultValue;
-    case "fixed":
-      return args.value;
-    case "range":
-      return args.min; // Return first value for string conversion
-    default:
-      return defaultValue;
-  }
+export function getStringFromArgs(args: Arguments, defaultValue = ""): string {
+  return args.getString(defaultValue);
 }
 
 /**
  * Gets a number value from Arguments.
  */
-export function getNumberFromArgs(
-  args: Arguments,
-  defaultValue: number = 0
-): number {
-  switch (args.type) {
-    case "none":
-      return defaultValue;
-    case "fixed":
-      const num = parseFloat(args.value);
-      return isNaN(num) ? defaultValue : num;
-    case "range":
-      const minNum = parseFloat(args.min);
-      return isNaN(minNum) ? defaultValue : minNum;
-    default:
-      return defaultValue;
-  }
+export function getNumberFromArgs(args: Arguments, defaultValue = 0): number {
+  return args.getNumber(defaultValue);
 }
 
 /**
@@ -132,17 +107,10 @@ export function getNumberFromArgs(
  */
 export function getNumberRangeFromArgs(
   args: Arguments,
-  defaultMin: number = 0,
-  defaultMax: number = 1
+  defaultMin = 0,
+  defaultMax = 100
 ): [number, number] {
-  if (args.type === "range") {
-    const min = parseFloat(args.min);
-    const max = parseFloat(args.max);
-    return [isNaN(min) ? defaultMin : min, isNaN(max) ? defaultMax : max];
-  }
-
-  const single = getNumberFromArgs(args, defaultMin);
-  return [single, Math.max(single, defaultMax)];
+  return args.getNumberRange(defaultMin, defaultMax);
 }
 
 /**

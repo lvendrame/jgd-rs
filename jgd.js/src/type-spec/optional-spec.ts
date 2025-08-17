@@ -8,10 +8,21 @@ import type {
   GeneratorConfig,
   LocalConfig,
   JsonGenerator,
-  OptionalSpecInput,
-  FieldSpec,
 } from "../types";
 import { success } from "../utils/generator-utils";
+
+/**
+ * Input specification for optional fields.
+ */
+export interface OptionalSpecInput<T = unknown> {
+  optional: {
+    prob?: number; // 0.0 to 1.0, defaults to 0.5
+    of: T;
+  };
+}
+
+// Import FieldSpec from field.ts to avoid circular dependency
+import type { FieldSpec } from "./field";
 
 /**
  * Wraps any field specification to make it optionally null based on probability.

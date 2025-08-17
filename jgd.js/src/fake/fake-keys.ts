@@ -7,7 +7,8 @@
  */
 
 import type { Faker } from "@faker-js/faker";
-import type { GenerationResult, Arguments } from "../types";
+import type { GenerationResult } from "../types";
+import { Arguments, ArgumentsType } from "../utils/arguments";
 import { success, error } from "../utils/generator-utils";
 
 /**
@@ -180,45 +181,19 @@ class ArgumentsHelper {
   constructor(private args: Arguments) {}
 
   getString(defaultValue: string): string {
-    switch (this.args.type) {
-      case "none":
-        return defaultValue;
-      case "fixed":
-        return this.args.value;
-      case "range":
-        return this.args.min;
-    }
+    return this.args.getString(defaultValue);
   }
 
   getNumber(defaultValue: number): number {
-    const str = this.getString(defaultValue.toString());
-    const parsed = parseInt(str, 10);
-    return isNaN(parsed) ? defaultValue : parsed;
+    return this.args.getNumber(defaultValue);
   }
 
   getNumberRange(defaultMin: number, defaultMax: number): [number, number] {
-    switch (this.args.type) {
-      case "none":
-        return [defaultMin, defaultMax];
-      case "fixed":
-        const value = this.getNumber(defaultMin);
-        return [value, defaultMax];
-      case "range":
-        const min = parseInt(this.args.min, 10);
-        const max = parseInt(this.args.max, 10);
-        return [isNaN(min) ? defaultMin : min, isNaN(max) ? defaultMax : max];
-    }
+    return this.args.getNumberRange(defaultMin, defaultMax);
   }
 
   getStringRange(defaultMin: string, defaultMax: string): [string, string] {
-    switch (this.args.type) {
-      case "none":
-        return [defaultMin, defaultMax];
-      case "fixed":
-        return [this.args.value, defaultMax];
-      case "range":
-        return [this.args.min, this.args.max];
-    }
+    return this.args.getStringTuple(defaultMin, defaultMax);
   }
 }
 
