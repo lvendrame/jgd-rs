@@ -9,7 +9,7 @@ A TypeScript library for generating realistic JSON data using declarative schema
 ## 🚀 Features
 
 - 🎯 **Declarative Schema**: Define complex data structures using JSON schemas
-- 🌍 **Multi-locale Support**: Generate data in different languages (EN, FR_FR, DE_DE, IT_IT, PT_BR, JA_JP, AR_SA, CY_GB)
+- 🌍 **Multi-locale Support**: Generate data in different languages (EN, FR_FR, IT_IT, JA_JP, DE_DE, PT_BR, AR_SA, CY_GB)
 - 🔄 **Cross-references**: Link data between entities with automatic relationship management
 - 🔢 **Deterministic Generation**: Use seeds for reproducible results
 - 📊 **Rich Data Types**: Support for arrays, objects, numbers, booleans, and complex nested structures
@@ -40,9 +40,15 @@ const schema = {
   root: {
     fields: {
       id: "${ulid}",
-      name: "${person.firstName} ${person.lastName}",
+      name: "${name.name}",
       email: "${internet.safeEmail}",
-      age: { min: 18, max: 65, integer: true },
+      age: {
+        number: {
+          min: 18,
+          max: 65,
+          integer: true,
+        },
+      },
       active: true,
     },
   },
@@ -75,8 +81,8 @@ const schema = {
     users: {
       count: 3,
       fields: {
-        id: "${index}",
-        name: "${person.fullName}",
+        id: "${ulid}",
+        name: "${name.name}",
         email: "${internet.safeEmail}",
         summary: "User ${index} of ${count}",
         context: "${field.name} in ${entity.name}",
@@ -85,8 +91,8 @@ const schema = {
     posts: {
       count: [5, 10],
       fields: {
-        id: "${string.uuid}",
-        userId: "${index(2)}", // Reference parent user index
+        id: "${uuid.v4}",
+        userId: { ref: "users.id" },
         title: "${lorem.sentence(3,7)}",
         content: "${lorem.paragraphs(2,4)}",
         tags: {
@@ -128,7 +134,7 @@ JGD schemas follow a structured format that defines how your fake data should be
   "$format": "jgd/v1",           // Required: Schema format version
   "version": "1.0.0",           // Required: Your schema version
   "seed": 42,                   // Optional: Deterministic generation seed
-  "locale": "en_US",            // Optional: Faker locale (default: en_US)
+  "defaultLocale": "EN",        // Optional: Faker locale (default: EN)
   "root": { ... }               // Single entity root
   // OR
   "entities": { ... }           // Multiple named entities
@@ -142,16 +148,27 @@ JGD schemas follow a structured format that defines how your fake data should be
   "count": 5,                   // Fixed count
   // OR
   "count": [1, 10],            // Random count range
-  // OR
-  "count": { "min": 1, "max": 10 }, // Explicit range
 
   "fields": {
-    "fieldName": "value",       // Static value
-    "fieldName": "${faker.pattern}", // Faker pattern
-    "fieldName": { ... },       // Nested object/array
-    "fieldName": {
-      "optional": 0.7,          // 70% chance field exists
-      "value": "${faker.pattern}"
+    "fieldName": "value",       // Static value (string, number, boolean, null)
+    "fieldName": "${faker.pattern}", // Faker pattern string
+    "fieldName": {              // Entity (nested object)
+      "fields": { ... }
+    },
+    "fieldName": {              // Array
+      "array": { "count": 3, "of": "..." }
+    },
+    "fieldName": {              // Number specification
+      "number": { "min": 1, "max": 10 }
+    },
+    "fieldName": {              // Optional field wrapper
+      "optional": {
+        "of": "${faker.pattern}",
+        "prob": 0.7             // 70% chance field exists
+      }
+    },
+    "fieldName": {              // Reference to another entity
+      "ref": "entity.field"
     }
   }
 }
@@ -174,9 +191,26 @@ JGD schemas follow a structured format that defines how your fake data should be
 
 ```typescript
 {
-  "age": { "min": 18, "max": 65 },
-  "rating": { "min": 1.0, "max": 5.0, "integer": false },
-  "score": { "min": 0, "max": 100, "integer": true }
+  "age": {
+    "number": {
+      "min": 18,
+      "max": 65
+    }
+  },
+  "rating": {
+    "number": {
+      "min": 1.0,
+      "max": 5.0,
+      "integer": false
+    }
+  },
+  "score": {
+    "number": {
+      "min": 0,
+      "max": 100,
+      "integer": true
+    }
+  }
 }
 ```
 
@@ -195,8 +229,10 @@ JGD schemas follow a structured format that defines how your fake data should be
     "array": {
       "count": 3,
       "of": {                   // Complex objects in array
-        "id": "${index}",
-        "name": "${commerce.category}"
+        "fields": {             // Must be an Entity with fields
+          "id": "${index}",
+          "name": "${commerce.category}"
+        }
       }
     }
   }
@@ -208,10 +244,14 @@ JGD schemas follow a structured format that defines how your fake data should be
 ```typescript
 {
   "profile": {
-    "optional": 0.8,            // 80% chance this field exists
-    "value": {
-      "bio": "${lorem.paragraph}",
-      "avatar": "${internet.avatar}"
+    "optional": {               // Optional field wrapper
+      "of": {
+        "fields": {             // Must be an Entity with fields
+          "bio": "${lorem.paragraph}",
+          "avatar": "${internet.avatar}"
+        }
+      },
+      "prob": 0.8              // 80% chance this field exists
     }
   }
 }
@@ -383,7 +423,7 @@ JGD supports multiple locales for generating localized fake data:
 const schema = {
   $format: "jgd/v1",
   version: "1.0.0",
-  locale: "de_DE", // German locale
+  defaultLocale: "DE_DE", // German locale
   root: {
     fields: {
       name: "${person.fullName}", // German names
@@ -394,7 +434,7 @@ const schema = {
 };
 ```
 
-**Supported Locales**: `en_US`, `de_DE`, `fr_FR`, `es_ES`, `it_IT`, `pt_BR`, `ja_JP`, `ko_KR`, `zh_CN`, and many more.
+**Supported Locales**: `EN`, `FR_FR`, `IT_IT`, `JA_JP`, `DE_DE`, `PT_BR`, `AR_SA`, `CY_GB`.
 
 ## 🎲 Deterministic Generation
 
@@ -517,9 +557,11 @@ const ecommerceSchema = {
         name: "${commerce.productName}",
         description: "${commerce.productDescription}",
         price: {
-          min: 9.99,
-          max: 999.99,
-          integer: false,
+          number: {
+            min: 9.99,
+            max: 999.99,
+            integer: false,
+          },
         },
         sku: "${string.alphanumeric(8)}",
         inStock: "${datatype.boolean}",
@@ -530,10 +572,20 @@ const ecommerceSchema = {
           },
         },
         metadata: {
-          optional: 0.7,
-          value: {
-            weight: { min: 0.1, max: 50.0 },
-            dimensions: "${lorem.words(3)}",
+          optional: {
+            of: {
+              fields: {
+                // Must be an Entity with fields
+                weight: {
+                  number: {
+                    min: 0.1,
+                    max: 50.0,
+                  },
+                },
+                dimensions: "${lorem.words(3)}",
+              },
+            },
+            prob: 0.7,
           },
         },
       },
@@ -548,7 +600,7 @@ const ecommerceSchema = {
 const userSystemSchema = {
   "$format": "jgd/v1",
   "version": "2.0.0",
-  "locale": "en_US",
+  "defaultLocale": "EN",
   "entities": {
     "roles": {
       "count": 3,
@@ -574,16 +626,20 @@ const userSystemSchema = {
           "email": "${internet.safeEmail}",
           "avatar": "${internet.avatar}",
           "bio": {
-            "optional": 0.6,
-            "value": "${lorem.sentence}"
+            "optional": {
+              "of": "${lorem.sentence}",
+              "prob": 0.6
+            }
           }
         },
         "account": {
           "username": "${internet.username}",
           "createdAt": "${date.past}",
           "lastLoginAt": {
-            "optional": 0.8,
-            "value": "${date.recent}"
+            "optional": {
+              "of": "${date.recent}",
+              "prob": 0.8
+            }
           },
           "isActive": "${datatype.boolean}",
           "preferences": {
@@ -612,7 +668,13 @@ const socialMediaSchema = {
         "id": "${index1}",
         "username": "${internet.username}",
         "displayName": "${person.fullName}",
-        "followerCount": { "min": 0, "max": 10000, "integer": true }
+        "followerCount": {
+          "number": {
+            "min": 0,
+            "max": 10000,
+            "integer": true
+          }
+        }
       }
     },
     "posts": {
@@ -628,21 +690,43 @@ const socialMediaSchema = {
           }
         },
         "metrics": {
-          "likes": { "min": 0, "max": 1000, "integer": true },
-          "shares": { "min": 0, "max": 100, "integer": true },
-          "comments": { "min": 0, "max": 50, "integer": true }
+          "likes": {
+            "number": {
+              "min": 0,
+              "max": 1000,
+              "integer": true
+            }
+          },
+          "shares": {
+            "number": {
+              "min": 0,
+              "max": 100,
+              "integer": true
+            }
+          },
+          "comments": {
+            "number": {
+              "min": 0,
+              "max": 50,
+              "integer": true
+            }
+          }
         },
         "publishedAt": "${date.recent}",
         "media": {
-          "optional": 0.4,
-          "value": {
-            "array": {
-              "count": [1, 3],
-              "of": {
-                "url": "${image.url}",
-                "type": ["image", "video", "gif"][${number.int(0,2)}]
+          "optional": {
+            "of": {
+              "array": {
+                "count": [1, 3],
+                "of": {
+                  "fields": {              // Must be an Entity with fields
+                    "url": "${image.url}",
+                    "type": ["image", "video", "gif"][${number.int(0,2)}]
+                  }
+                }
               }
-            }
+            },
+            "prob": 0.4
           }
         }
       }
@@ -793,7 +877,7 @@ A: Context depth is only created by entities with `count` property. Ensure paren
 A: Check your probability value - `0.7` means 70% chance:
 
 ```typescript
-{ "optional": 0.3, "value": "..." } // 30% chance
+{ "optional": { "of": "...", "prob": 0.3 } } // 30% chance
 ```
 
 **Q: Array generation fails with complex objects**
