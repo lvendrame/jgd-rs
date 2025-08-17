@@ -12,17 +12,10 @@ import type {
 import { success, error, validateNumberRange } from "../utils/generator-utils";
 
 /**
- * Input specification for number generation.
- */
-export interface NumberSpecInput {
-  min: number;
-  max: number;
-  integer?: boolean;
-}
-
-/**
  * Generates random numbers within a specified range.
  * Supports both integer and floating-point number generation.
+ *
+ * Can be used directly as a class or created from plain object specifications.
  */
 export class NumberSpec implements JsonGenerator<number> {
   constructor(
@@ -50,7 +43,11 @@ export class NumberSpec implements JsonGenerator<number> {
   /**
    * Creates a NumberSpec from a specification object.
    */
-  static fromSpec(spec: NumberSpecInput): NumberSpec {
+  static fromSpec(spec: {
+    min: number;
+    max: number;
+    integer?: boolean;
+  }): NumberSpec {
     return new NumberSpec(spec.min, spec.max, spec.integer || false);
   }
 

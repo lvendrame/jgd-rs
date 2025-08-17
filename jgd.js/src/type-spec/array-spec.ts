@@ -9,7 +9,6 @@ import type {
   LocalConfig,
   JsonGenerator,
 } from "../types";
-import { NumberSpecInput } from "./number-spec";
 import type { CountSpec } from "./count";
 import {
   success,
@@ -22,32 +21,34 @@ import { NumberSpec } from "./number-spec";
 import { processTemplate, isTemplate } from "../template";
 
 /**
- * Input specification for array generation.
- */
-export interface ArraySpecInput {
-  count: CountSpec;
-  of: string | number | boolean | NumberSpecInput | { ref: string };
-}
-
-/**
  * Generates arrays of primitive values (strings, numbers, booleans).
  * Arrays in JGD are strictly for primitive types - complex objects should use entities.
+ *
+ * Can be used directly as a class or created from plain object specifications.
  */
 export class ArraySpec implements JsonGenerator<JsonValue[]> {
   constructor(
-    public readonly count: ArraySpecInput["count"],
+    public readonly count: CountSpec,
     public readonly elementSpec:
       | string
       | number
       | boolean
-      | NumberSpecInput
+      | { min: number; max: number; integer?: boolean }
       | { ref: string }
   ) {}
 
   /**
    * Creates an ArraySpec from a specification object.
    */
-  static fromSpec(spec: ArraySpecInput): ArraySpec {
+  static fromSpec(spec: {
+    count: CountSpec;
+    of:
+      | string
+      | number
+      | boolean
+      | { min: number; max: number; integer?: boolean }
+      | { ref: string };
+  }): ArraySpec {
     return new ArraySpec(spec.count, spec.of);
   }
 

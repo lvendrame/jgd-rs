@@ -11,21 +11,13 @@ import type {
 } from "../types";
 import { success } from "../utils/generator-utils";
 
-/**
- * Input specification for optional fields.
- */
-export interface OptionalSpecInput<T = unknown> {
-  optional: {
-    prob?: number; // 0.0 to 1.0, defaults to 0.5
-    of: T;
-  };
-}
-
 // Import FieldSpec from field.ts to avoid circular dependency
 import type { FieldSpec } from "./field";
 
 /**
  * Wraps any field specification to make it optionally null based on probability.
+ *
+ * Can be used directly as a class or created from plain object specifications.
  */
 export class OptionalSpec implements JsonGenerator<JsonValue> {
   constructor(
@@ -42,7 +34,12 @@ export class OptionalSpec implements JsonGenerator<JsonValue> {
   /**
    * Creates an OptionalSpec from a specification object.
    */
-  static fromSpec<T>(spec: OptionalSpecInput<T>): OptionalSpec {
+  static fromSpec<T>(spec: {
+    optional: {
+      prob?: number; // 0.0 to 1.0, defaults to 0.5
+      of: T;
+    };
+  }): OptionalSpec {
     const probability = spec.optional.prob ?? 0.5;
     return new OptionalSpec(spec.optional.of as FieldSpec, probability);
   }

@@ -9,29 +9,31 @@ import type {
   LocalConfig,
   JsonGenerator,
 } from "../types";
-import { NumberSpecInput } from "./number-spec";
-import { ArraySpecInput } from "./array-spec";
-import { OptionalSpecInput } from "./optional-spec";
-import type { Entity } from "./entity";
-import { success, error } from "../utils/generator-utils";
 import { NumberSpec } from "./number-spec";
 import { ArraySpec } from "./array-spec";
+import { OptionalSpec } from "./optional-spec";
+import type { Entity } from "./entity";
+import { success, error } from "../utils/generator-utils";
 import { Replacer } from "../utils/replacer";
 import { processTemplate, isTemplate } from "../template";
 
 /**
  * Field definition within an entity.
+ * Represents any valid field specification that can be used to generate data.
  */
 export type FieldSpec =
   | string
   | number
   | boolean
-  | NumberSpecInput
-  | ArraySpecInput
-  | OptionalSpecInput
+  | NumberSpec
+  | ArraySpec
+  | OptionalSpec
   | Entity
   | { ref: string }
-  | { array: ArraySpecInput };
+  | { min: number; max: number; integer?: boolean } // NumberSpec object form
+  | { count: any; of: any } // ArraySpec object form
+  | { optional: { prob?: number; of: any } } // OptionalSpec object form
+  | { array: any };
 
 /**
  * Generates values for any type of field specification.
@@ -98,32 +100,39 @@ export class FieldGenerator implements JsonGenerator<JsonValue> {
 
     // Handle NumberSpec
     if ("min" in spec && "max" in spec) {
-      const numberSpec = NumberSpec.fromSpec(spec as NumberSpecInput);
+      const numberSpec = NumberSpec.fromSpec(
+        spec as { min: number; max: number; integer?: boolean }
+      );
       return numberSpec.generate(config, localConfig);
     }
 
     // Handle number wrapper: { number: NumberSpec }
     if ("number" in spec) {
-      const numberSpec = NumberSpec.fromSpec(spec.number as NumberSpecInput);
+      const numberSpec = NumberSpec.fromSpec(
+        spec.number as { min: number; max: number; integer?: boolean }
+      );
       return numberSpec.generate(config, localConfig);
     }
 
     // Handle ArraySpec (direct array specification)
     if ("count" in spec && "of" in spec) {
-      const arraySpec = ArraySpec.fromSpec(spec as ArraySpecInput);
+      const arraySpec = ArraySpec.fromSpec(spec as { count: any; of: any });
       return arraySpec.generate(config, localConfig);
     }
 
     // Handle array wrapper: { array: ArraySpec }
     if ("array" in spec) {
-      const arraySpec = ArraySpec.fromSpec(spec.array as ArraySpecInput);
+      const arraySpec = ArraySpec.fromSpec(
+        spec.array as { count: any; of: any }
+      );
       return arraySpec.generate(config, localConfig);
     }
 
     // Handle OptionalSpec
     if ("optional" in spec) {
-      const { OptionalSpec } = require("./optional-spec");
-      const optionalSpec = OptionalSpec.fromSpec(spec as OptionalSpecInput);
+      const optionalSpec = OptionalSpec.fromSpec(
+        spec as { optional: { prob?: number; of: any } }
+      );
       return optionalSpec.generate(config, localConfig);
     }
 

@@ -1,21 +1,21 @@
 /**
  * Count specification for JGD (JSON Generator Definition) entities.
  *
- * This class mirrors the Rust Count enum and defines how many items should be generated
- * for arrays, collections, or repeated elements in JGD schemas. It supports both fixed
- * counts and dynamic ranges, allowing for flexible data generation scenarios.
+ * This class represents count specifications for generating multiple items and defines
+ * how many items should be generated for arrays, collections, or repeated elements
+ * in JGD schemas. It supports both fixed counts and dynamic ranges.
  */
 
 import type { GeneratorConfig } from "../types";
 
 /**
- * Count specification types that mirror the Rust Count enum variants.
+ * Type alias for backward compatibility and cleaner type annotations.
  */
 export type CountSpec =
-  | number // Fixed count (direct number)
-  | { fixed: number } // Fixed count (object form)
-  | { range: [number, number] } // Range count
-  | [number, number]; // Range count (array form, for compatibility)
+  | number
+  | { fixed: number }
+  | { range: [number, number] }
+  | [number, number];
 
 /**
  * Represents count specifications for generating multiple items.
@@ -23,6 +23,11 @@ export type CountSpec =
  * Count defines how many items should be generated for arrays, collections,
  * or repeated elements in JGD schemas. It supports both fixed counts and
  * dynamic ranges, allowing for flexible data generation scenarios.
+ *
+ * Can be used as:
+ * - Direct number: 5
+ * - Object form: { fixed: 5 } or { range: [1, 10] }
+ * - Array form: [1, 10] (for ranges)
  */
 export class Count {
   private readonly spec: CountSpec;

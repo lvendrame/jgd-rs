@@ -5,12 +5,11 @@
  * Based on the Rust JGD library architecture with TypeScript best practices.
  */
 
-// Main exports - including new structured classes
+// Main exports - merged and simplified classes
 export { Jgd, generateFromString, generateFromFile } from "./type-spec/jgd";
 
 // New structured type exports that mirror Rust exactly
 export { Entity } from "./type-spec/entity";
-export { Jgd as JgdClass } from "./type-spec/jgd-schema";
 export {
   Count,
   resolveCount as resolveCountSpec,
@@ -18,9 +17,6 @@ export {
 } from "./type-spec/count";
 
 // Type exports from type-spec modules
-export type { NumberSpecInput } from "./type-spec/number-spec";
-export type { ArraySpecInput } from "./type-spec/array-spec";
-export type { OptionalSpecInput } from "./type-spec/optional-spec";
 export type { FieldSpec } from "./type-spec/field";
 
 // Type exports - maintaining backward compatibility with core types only
