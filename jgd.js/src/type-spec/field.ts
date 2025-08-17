@@ -12,7 +12,7 @@ import type {
 import { NumberSpecInput } from "./number-spec";
 import { ArraySpecInput } from "./array-spec";
 import { OptionalSpecInput } from "./optional-spec";
-import type { Entity } from "./entity-spec";
+import type { Entity } from "./entity";
 import { success, error } from "../utils/generator-utils";
 import { NumberSpec } from "./number-spec";
 import { ArraySpec } from "./array-spec";

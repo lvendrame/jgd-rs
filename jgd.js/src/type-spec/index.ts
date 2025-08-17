@@ -9,7 +9,7 @@ export { FieldGenerator, type FieldSpec } from "./field";
 export { Jgd } from "./jgd";
 
 // New structured types that mirror Rust exactly
-export { Entity } from "./entity-spec";
+export { Entity } from "./entity";
 export { Jgd as JgdClass } from "./jgd-schema";
 export { Count, resolveCount, type CountSpec } from "./count";
 

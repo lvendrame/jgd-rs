@@ -1,54 +1,50 @@
 /**
- * Locale keys enum - matches the Rust LocalesKeys exactly.
+ * Supported locale codes.
  */
 
-export enum LocalesKeys {
-  En = "EN",
-  FrFr = "FR_FR",
-  ItIt = "IT_IT",
-  JaJp = "JA_JP",
-  DeDe = "DE_DE",
-  PtBr = "PT_BR",
-  ArSa = "AR_SA",
-  CyGb = "CY_GB",
-}
+export type LocaleCode =
+  | "EN"
+  | "FR_FR"
+  | "IT_IT"
+  | "JA_JP"
+  | "DE_DE"
+  | "PT_BR"
+  | "AR_SA"
+  | "CY_GB";
+
+const SUPPORTED_LOCALES: LocaleCode[] = [
+  "EN",
+  "FR_FR",
+  "IT_IT",
+  "JA_JP",
+  "DE_DE",
+  "PT_BR",
+  "AR_SA",
+  "CY_GB",
+];
 
 /**
- * Convert string to LocalesKeys enum.
+ * Convert string to valid locale code.
  */
-export function localeFromString(value: string): LocalesKeys {
-  switch (value) {
-    case "EN":
-      return LocalesKeys.En;
-    case "FR_FR":
-      return LocalesKeys.FrFr;
-    case "IT_IT":
-      return LocalesKeys.ItIt;
-    case "JA_JP":
-      return LocalesKeys.JaJp;
-    case "DE_DE":
-      return LocalesKeys.DeDe;
-    case "PT_BR":
-      return LocalesKeys.PtBr;
-    case "AR_SA":
-      return LocalesKeys.ArSa;
-    case "CY_GB":
-      return LocalesKeys.CyGb;
-    default:
-      return LocalesKeys.En;
+export function localeFromString(value: string): LocaleCode {
+  // Check if the value is a valid locale code
+  if (SUPPORTED_LOCALES.includes(value as LocaleCode)) {
+    return value as LocaleCode;
   }
+  // Default to EN if not found
+  return "EN";
 }
 
 /**
  * Get all supported locale codes.
  */
-export function getSupportedLocales(): string[] {
-  return Object.values(LocalesKeys);
+export function getSupportedLocales(): readonly LocaleCode[] {
+  return SUPPORTED_LOCALES;
 }
 
 /**
  * Check if a locale code is supported.
  */
 export function isLocaleSupported(locale: string): boolean {
-  return Object.values(LocalesKeys).includes(locale as LocalesKeys);
+  return SUPPORTED_LOCALES.includes(locale as LocaleCode);
 }

@@ -7,7 +7,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import type { JsonValue, GenerationResult, CustomKeyFunction } from "../types";
-import type { Entity } from "./entity-spec";
+import type { Entity } from "./entity";
 import { Jgd as JgdClass } from "./jgd-schema";
 import { success, error, validateSchemaMode } from "../utils/generator-utils";
 import {

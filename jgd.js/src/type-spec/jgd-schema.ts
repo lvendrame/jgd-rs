@@ -7,7 +7,7 @@
  */
 
 import type { JsonValue, GenerationResult, GeneratorConfig } from "../types";
-import { Entity } from "./entity-spec";
+import { Entity } from "./entity";
 
 /**
  * Core JGD schema representation containing all schema metadata and entity definitions.

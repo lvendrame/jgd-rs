@@ -9,7 +9,7 @@
 export { Jgd, generateFromString, generateFromFile } from "./type-spec/jgd";
 
 // New structured type exports that mirror Rust exactly
-export { Entity } from "./type-spec/entity-spec";
+export { Entity } from "./type-spec/entity";
 export { Jgd as JgdClass } from "./type-spec/jgd-schema";
 export {
   Count,
@@ -80,8 +80,8 @@ export { JgdKeyGenerator, JGD_KEYS } from "./fake";
 export { JgdGeneratorError } from "./types";
 
 // Locales export
+export type { LocaleCode } from "./locales-keys";
 export {
-  LocalesKeys,
   localeFromString,
   getSupportedLocales,
   isLocaleSupported,
