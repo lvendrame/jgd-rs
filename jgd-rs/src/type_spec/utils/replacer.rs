@@ -21,14 +21,30 @@ static RE_FAKES: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(\$\{(.+?)(\(.+
 /// Represents a single placeholder replacement within a JGD template string.
 ///
 /// A `Replacer` contains information about a placeholder that was found in a template
-/// string, including its position, the key to generate data for, and any arguments
-/// that should be passed to the fake data generator.
+/// string, including its position, the key to generate data for, parsed arguments,
+/// and methods to generate replacement values using various data sources.
 ///
 /// # JGD Template Placeholders
 ///
 /// JGD templates use the syntax `${key}` or `${key(arguments)}` to specify where
 /// fake data should be inserted. The `Replacer` struct captures all the metadata
-/// needed to perform the replacement.
+/// needed to perform the replacement and provides methods to generate the actual
+/// replacement values.
+///
+/// # Value Generation Priority
+///
+/// The `generate_value` method checks for replacement values in the following order:
+/// 1. **Local Configuration Keys**: Entity-specific or field-specific overrides
+/// 2. **Custom Keys**: User-defined custom key functions via `Jgd::add_custom_key`
+/// 3. **Fake Generator Keys**: Built-in fake data generators (faker library)
+///
+/// # Arguments Support
+///
+/// Replacers can contain parsed arguments that modify the behavior of the data
+/// generators. Arguments are extracted from parentheses in the pattern:
+/// - `${name.firstName}` → No arguments
+/// - `${lorem.words(5)}` → Fixed argument: "5"
+/// - `${number.between(1,100)}` → Range arguments: "1" and "100"
 ///
 /// # Examples
 ///
@@ -45,6 +61,11 @@ static RE_FAKES: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(\$\{(.+?)(\(.+
 /// assert_eq!(replacer.pattern, "name.firstName");
 /// assert_eq!(replacer.start, 6);
 /// assert_eq!(replacer.end, 23);
+///
+/// // Generate a value using the replacer
+/// let mut config = GeneratorConfig::new("EN", None);
+/// let result = replacer.generate_value(&mut config, None);
+/// assert!(result.is_ok());
 /// ```
 #[derive(Debug, Clone)]
 pub struct Replacer {
@@ -84,6 +105,23 @@ pub struct Replacer {
     /// - `number.integer(1..100)` (with range arguments)
     pub pattern: String,
 
+    /// Parsed arguments extracted from the placeholder pattern.
+    ///
+    /// Arguments are parsed from the parentheses portion of placeholder patterns
+    /// and provide parameters to customize the behavior of data generators.
+    ///
+    /// # Argument Types
+    ///
+    /// - `Arguments::None`: No arguments provided (e.g., `${name.firstName}`)
+    /// - `Arguments::Fixed(value)`: Single argument (e.g., `${lorem.words(5)}`)
+    /// - `Arguments::Range(start, end)`: Range arguments (e.g., `${number.between(1,100)}`)
+    ///
+    /// # Usage
+    ///
+    /// The arguments are passed to data generators to customize their output:
+    /// - Number generators use arguments for ranges or specific values
+    /// - Text generators use arguments for length or count parameters
+    /// - Date generators use arguments for date ranges or offsets
     pub arguments: Arguments,
 
     /// The complete original placeholder tag from the template.
@@ -150,6 +188,65 @@ impl Replacer {
         Self { start, end, length, key, pattern, arguments, tag }
     }
 
+    /// Generates a replacement value for this placeholder using available data sources.
+    ///
+    /// This method attempts to generate an appropriate replacement value by checking
+    /// multiple data sources in priority order. It provides a flexible system for
+    /// value generation that supports local overrides, custom functions, and built-in
+    /// fake data generators.
+    ///
+    /// # Value Generation Priority
+    ///
+    /// The method checks for replacement values in the following order:
+    ///
+    /// 1. **Local Configuration Keys**: If a `LocalConfig` is provided, it first
+    ///    checks for entity-specific or field-specific key overrides using
+    ///    `local_config.process_key()`. This allows for context-aware data generation.
+    ///
+    /// 2. **Custom Key Functions**: Checks if a custom key function has been registered
+    ///    for this key using `Jgd::get_custom_key()`. Custom functions are registered
+    ///    via `Jgd::add_custom_key()` and receive the parsed arguments.
+    ///
+    /// 3. **Fake Generator Keys**: Falls back to the built-in fake data generators
+    ///    in `GeneratorConfig`. These provide standard faker functionality for
+    ///    names, addresses, lorem text, numbers, etc.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - Mutable reference to the generator configuration containing
+    ///   fake data generators, random number generator, and registered keys
+    /// * `local_config` - Optional local configuration for entity/field-specific
+    ///   key processing and overrides
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Value)` - Successfully generated replacement value (any JSON type)
+    /// * `Err(String)` - Error message if no suitable generator was found
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use jgd_rs::{Replacer, GeneratorConfig, LocalConfig};
+    ///
+    /// let replacer = Replacer::from("name.firstName");
+    /// let mut config = GeneratorConfig::new("EN", Some(42));
+    ///
+    /// // Basic usage with fake generator
+    /// let result = replacer.generate_value(&mut config, None);
+    /// assert!(result.is_ok());
+    ///
+    /// // Usage with local config for entity-specific overrides
+    /// let mut local_config = LocalConfig::new("User", "firstName");
+    /// let result = replacer.generate_value(&mut config, Some(&mut local_config));
+    /// assert!(result.is_ok());
+    /// ```
+    ///
+    /// # Error Handling
+    ///
+    /// Returns an error if:
+    /// - The key is not found in any of the checked data sources
+    /// - A custom key function returns an error
+    /// - The fake generator encounters an error during value generation
     pub fn generate_value(&self, config: &mut GeneratorConfig, local_config: Option<&mut LocalConfig>
         ) -> Result<Value, String> {
         if let Some(local_config) = local_config {
@@ -175,8 +272,14 @@ impl From<&str> for Replacer {
     /// Creates a `Replacer` from a string pattern for testing purposes.
     ///
     /// This implementation is primarily intended for unit tests where you need to create
-    /// a `Replacer` instance from a simple pattern string without going through the
-    /// full regex parsing process.
+    /// a `Replacer` instance from a simple pattern string. It uses the same regex parsing
+    /// logic as the main `ReplacerCollection` to ensure consistency.
+    ///
+    /// # Implementation Details
+    ///
+    /// The method wraps the input pattern in `${}` format and uses the `RE_FAKES` regex
+    /// to parse it, then calls the `new` method with the captured groups. This ensures
+    /// that the parsing logic is identical to the main template processing.
     ///
     /// # Arguments
     ///
@@ -187,14 +290,22 @@ impl From<&str> for Replacer {
     /// ```rust,ignore
     /// use jgd_rs::Replacer;
     ///
+    /// // Simple pattern without arguments
     /// let replacer = Replacer::from("name.firstName");
     /// assert_eq!(replacer.key, "name.firstName");
     /// assert_eq!(replacer.pattern, "name.firstName");
     ///
+    /// // Pattern with arguments
     /// let replacer = Replacer::from("lorem.words(5)");
     /// assert_eq!(replacer.key, "lorem.words");
     /// assert_eq!(replacer.pattern, "lorem.words(5)");
     /// ```
+    ///
+    /// # Fallback Behavior
+    ///
+    /// If the pattern doesn't match the expected regex format, the implementation
+    /// provides a fallback that treats the entire input as the key without arguments.
+    /// This ensures the method never panics, even with malformed input.
     fn from(pattern: &str) -> Self {
         // Use the existing regex to parse the pattern
         if let Some(captures) = RE_FAKES.captures(pattern) {
