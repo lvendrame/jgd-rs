@@ -12,13 +12,13 @@ import type {
   GenerationResult,
   CustomKeyFunction,
   EntitySpec,
-} from "./types";
-import { success, error, validateSchemaMode } from "./utils";
+} from "../types";
+import { success, error, validateSchemaMode } from "../utils/generator-utils";
 import {
   createConfigWithGlobalKeys,
   addCustomKey as globalAddCustomKey,
-} from "./config";
-import { EntityGenerator } from "./entity-generator";
+} from "../config";
+import { EntityGenerator } from "./entity";
 
 /**
  * Main JGD class for loading and executing JSON generation schemas.

@@ -2,9 +2,29 @@
   "name": "jgd.js",
   "version": "0.2.0",
   "description": "A simple TypeScript library for generating realistic JSON data using declarative schema definitions",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/**/*"
+  ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "devDependencies": {
+    "@types/jest": "30.0.0",
+    "@types/node": "24.3.0",
+    "jest": "30.0.5",
+    "rimraf": "6.0.1",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^9.9.0"
   },
   "repository": {
     "type": "git",

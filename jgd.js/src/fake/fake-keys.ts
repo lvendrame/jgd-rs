@@ -7,8 +7,8 @@
  */
 
 import type { Faker } from "@faker-js/faker";
-import type { GenerationResult, Arguments } from "./types";
-import { success, error } from "./utils/mod";
+import type { GenerationResult, Arguments } from "../types";
+import { success, error } from "../utils/generator-utils";
 
 /**
  * All supported JGD keys from the Rust implementation.

@@ -10,8 +10,8 @@ import type {
   JsonGenerator,
   OptionalSpecInput,
   FieldSpec,
-} from "./types";
-import { success } from "./utils";
+} from "../types";
+import { success } from "../utils/generator-utils";
 
 /**
  * Wraps any field specification to make it optionally null based on probability.
@@ -52,7 +52,7 @@ export class OptionalSpec implements JsonGenerator<JsonValue> {
 
     // Generate the actual value using FieldGenerator
     // Import here to avoid circular dependency
-    const { FieldGenerator } = require("./field-generator");
+    const { FieldGenerator } = require("./field");
     const fieldGenerator = new FieldGenerator(this.innerSpec);
     return fieldGenerator.generate(config, localConfig);
   }

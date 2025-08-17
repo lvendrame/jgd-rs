@@ -8,8 +8,8 @@ import type {
   GenerationResult,
   JsonValue,
 } from "./types";
-import { success, error } from "./utils";
-import { Replacer } from "./replacer";
+import { success, error } from "./utils/generator-utils";
+import { Replacer } from "./utils/replacer";
 
 /**
  * Regular expression for finding all ${...} patterns in a string.

@@ -1,0 +1,24 @@
+{
+  "$format": "jgd/v1",
+  "version": "1.0.0",
+  "seed": 42,
+  "defaultLocale": "EN",
+  "root": {
+    "fields": {
+      "name": "${person.firstName}",
+      "age": {
+        "min": 18,
+        "max": 65,
+        "integer": true
+      },
+      "email": "${internet.email}",
+      "active": true,
+      "tags": {
+        "array": {
+          "count": { "range": [1, 5] },
+          "of": "${lorem.word}"
+        }
+      }
+    }
+  }
+}

@@ -9,9 +9,15 @@ import type {
   LocalConfig,
   JsonGenerator,
   EntitySpec,
-} from "./types";
-import { success, error, resolveCount, pushDepth, popDepth } from "./utils";
-import { FieldGenerator } from "./field-generator";
+} from "../types";
+import {
+  success,
+  error,
+  resolveCount,
+  pushDepth,
+  popDepth,
+} from "../utils/generator-utils";
+import { FieldGenerator } from "./field";
 
 /**
  * Generates complex objects (entities) with multiple fields.

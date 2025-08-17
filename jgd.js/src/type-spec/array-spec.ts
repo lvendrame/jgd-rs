@@ -10,11 +10,17 @@ import type {
   JsonGenerator,
   ArraySpecInput,
   NumberSpecInput,
-} from "./types";
-import { success, error, resolveCount, pushDepth, popDepth } from "./utils/mod";
+} from "../types";
+import {
+  success,
+  error,
+  resolveCount,
+  pushDepth,
+  popDepth,
+} from "../utils/generator-utils";
 import { NumberSpec } from "./number-spec";
-import { Replacer } from "./utils/mod";
-import { processTemplate, isTemplate } from "./template";
+import { Replacer } from "../utils/replacer";
+import { processTemplate, isTemplate } from "../template";
 
 /**
  * Generates arrays of primitive values (strings, numbers, booleans).

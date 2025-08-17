@@ -13,12 +13,12 @@ import type {
   ArraySpecInput,
   OptionalSpecInput,
   EntitySpec,
-} from "./types";
-import { success, error, pushDepth, popDepth } from "./utils";
+} from "../types";
+import { success, error, pushDepth, popDepth } from "../utils/generator-utils";
 import { NumberSpec } from "./number-spec";
 import { ArraySpec } from "./array-spec";
-import { Replacer } from "./replacer";
-import { processTemplate, isTemplate } from "./template";
+import { Replacer } from "../utils/replacer";
+import { processTemplate, isTemplate } from "../template";
 
 /**
  * Generates values for any type of field specification.
@@ -121,7 +121,7 @@ export class FieldGenerator implements JsonGenerator<JsonValue> {
 
     // Handle EntitySpec (nested object with fields)
     if ("fields" in spec) {
-      const { EntityGenerator } = require("./entity-generator");
+      const { EntityGenerator } = require("./entity");
       const entityGenerator = new EntityGenerator(spec as EntitySpec);
       return entityGenerator.generate(config, localConfig);
     }

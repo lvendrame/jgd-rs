@@ -12,7 +12,7 @@ import type {
   GeneratorConfig,
   LocalConfig,
   CustomKeyFunction,
-} from "./types";
+} from "../types";
 import {
   success,
   error,
@@ -24,8 +24,8 @@ import {
   getCurrentCount,
   getCurrentEntityName,
   getCurrentFieldName,
-} from "./utils";
-import { JgdKeyGenerator } from "./keys";
+} from "./generator-utils";
+import { JgdKeyGenerator } from "../fake/fake-keys";
 
 /**
  * Regular expression for matching faker patterns.

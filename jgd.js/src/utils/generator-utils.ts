@@ -12,7 +12,7 @@ import type {
   JsonValue,
   GeneratorConfig,
   LocalConfig,
-} from "./types";
+} from "../types";
 
 /**
  * Parses a count specification and returns the actual count to generate.

@@ -1,0 +1,38 @@
+{
+  "$format": "jgd/v1",
+  "version": "1.0.0",
+  "seed": 42,
+  "entities": {
+    "users": {
+      "count": 3,
+      "fields": {
+        "id": "${index}",
+        "name": "${person.fullName}",
+        "email": "${internet.email}",
+        "summary": "${index} of ${count}",
+        "posts": {
+          "count": { "range": [1, 3] },
+          "fields": {
+            "id": "${string.uuid}",
+            "userId": "${index(2)}",
+            "title": "${lorem.sentence}",
+            "content": "${lorem.paragraphs(2,4)}"
+          }
+        }
+      }
+    },
+    "companies": {
+      "count": 2,
+      "fields": {
+        "id": "${index}",
+        "name": "${company.name}",
+        "employees": {
+          "array": {
+            "count": { "range": [5, 10] },
+            "of": "${person.firstName}"
+          }
+        }
+      }
+    }
+  }
+}

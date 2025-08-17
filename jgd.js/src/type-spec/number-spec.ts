@@ -9,8 +9,8 @@ import type {
   LocalConfig,
   JsonGenerator,
   NumberSpecInput,
-} from "./types";
-import { success, error, validateNumberRange } from "./utils";
+} from "../types";
+import { success, error, validateNumberRange } from "../utils/generator-utils";
 
 /**
  * Generates random numbers within a specified range.
