@@ -231,7 +231,7 @@ JGD schemas follow a structured format that defines how your fake data should be
       "of": {                   // Complex objects in array
         "fields": {             // Must be an Entity with fields
           "id": "${index}",
-          "name": "${commerce.category}"
+          "name": "${company.name}"
         }
       }
     }
@@ -281,90 +281,98 @@ JGD supports 100+ faker patterns across multiple categories:
 
 ### Person & Identity
 
+````typescript
+### Person & Identity
 ```typescript
-"${person.firstName}"; // First name
-"${person.lastName}"; // Last name
-"${person.fullName}"; // Full name
-"${person.gender}"; // Gender
-"${person.prefix}"; // Title prefix (Mr., Dr., etc.)
-"${person.suffix}"; // Name suffix (Jr., PhD, etc.)
-"${person.jobTitle}"; // Job title
-"${person.jobDescriptor}"; // Job descriptor
-"${person.jobArea}"; // Job area
-```
+"${name.firstName}"          // First name
+"${name.lastName}"           // Last name
+"${name.name}"               // Full name
+"${name.title}"              // Title prefix (Mr., Dr., etc.)
+"${name.suffix}"             // Name suffix (Jr., PhD, etc.)
+"${name.nameWithTitle}"      // Name with title
+````
+
+````
 
 ### Internet & Communication
 
 ```typescript
-"${internet.email}"; // Email address
-"${internet.safeEmail}"; // Safe email (example.com domain)
-"${internet.username}"; // Username
-"${internet.password}"; // Password
-"${internet.url}"; // URL
-"${internet.domainName}"; // Domain name
-"${internet.avatar}"; // Avatar URL
-"${phone.number}"; // Phone number
-```
+### Internet & Communication
+```typescript
+"${internet.freeEmail}"      // Free email address
+"${internet.safeEmail}"      // Safe email (example.com domain)
+"${internet.username}"       // Username
+"${internet.password}"       // Password
+"${internet.IPv4}"           // IPv4 address
+"${internet.IPv6}"           // IPv6 address
+"${internet.IP}"             // IP address
+"${internet.MACAddress}"     // MAC address
+"${internet.userAgent}"      // User agent
+"${phone_number.phoneNumber}" // Phone number
+"${phone_number.cellNumber}" // Cell number
+````
+
+````
 
 ### Location & Geography
 
 ```typescript
-"${location.country}"; // Country name
-"${location.state}"; // State/province
-"${location.city}"; // City name
-"${location.zipCode}"; // ZIP/postal code
-"${location.streetAddress}"; // Street address
-"${location.latitude}"; // Latitude coordinate
-"${location.longitude}"; // Longitude coordinate
-```
+"${address.countryName}"     // Country name
+"${address.countryCode}"     // Country code
+"${address.stateName}"       // State/province name
+"${address.stateAbbr}"       // State abbreviation
+"${address.cityName}"        // City name
+"${address.zipCode}"         // ZIP/postal code
+"${address.streetName}"      // Street name
+"${address.latitude}"        // Latitude coordinate
+"${address.longitude}"       // Longitude coordinate
+````
 
 ### Commerce & Business
 
 ```typescript
-"${commerce.product}"; // Product name
-"${commerce.price}"; // Price
-"${commerce.department}"; // Department
-"${commerce.category}"; // Category
 "${company.name}"; // Company name
+"${company.companySuffix}"; // Company suffix
 "${company.catchPhrase}"; // Company slogan
-"${finance.accountNumber}"; // Account number
-"${finance.creditCardNumber}"; // Credit card number
+"${company.bs}"; // Business speak
+"${finance.bitcoinAddress}"; // Bitcoin address
+"${finance.ethereumAddress}"; // Ethereum address
+"${finance.litecoinAddress}"; // Litecoin address
 ```
 
 ### Text & Content
 
 ```typescript
 "${lorem.word}"; // Single word
-"${lorem.words(3)"; // Multiple words
+"${lorem.words}"; // Multiple words
 "${lorem.sentence}"; // Sentence
-"${lorem.sentences(2)"; // Multiple sentences
+"${lorem.sentences}"; // Multiple sentences
 "${lorem.paragraph}"; // Paragraph
-"${lorem.paragraphs(3)"; // Multiple paragraphs
-"${lorem.text}"; // Random text
+"${lorem.paragraphs}"; // Multiple paragraphs
 ```
 
 ### Dates & Time
 
 ```typescript
-"${date.recent}"; // Recent date
-"${date.future}"; // Future date
-"${date.past}"; // Past date
-"${date.birthdate}"; // Birthdate
-"${date.weekday}"; // Weekday name
-"${date.month}"; // Month name
+"${chrono.time}"; // Time string
+"${chrono.date}"; // Date string
+"${chrono.dateTime}"; // Date/time string
+"${time.time}"; // Time string
+"${time.date}"; // Date string
+"${time.dateTime}"; // Date/time string
 ```
 
 ### Technical & Data
 
 ```typescript
-"${string.uuid}"; // UUID v4
-"${string.nanoid}"; // Nano ID
-"${string.ulid}"; // ULID
-"${string.alphanumeric(10)"; // Alphanumeric string
-"${internet.ipv4}"; // IPv4 address
-"${internet.ipv6}"; // IPv6 address
-"${internet.mac}"; // MAC address
-"${database.mongodbObjectId}"; // MongoDB ObjectID
+"${ulid}"; // ULID
+"${uuid.v4}"; // UUID v4
+"${internet.IPv4}"; // IPv4 address
+"${internet.IPv6}"; // IPv6 address
+"${internet.MACAddress}"; // MAC address
+"${barcode.isbn}"; // ISBN barcode
+"${barcode.isbn10}"; // ISBN-10
+"${barcode.isbn13}"; // ISBN-13
 ```
 
 ## 🔗 Context-Aware Keys
@@ -374,11 +382,9 @@ JGD provides special context-aware patterns that reference generation state:
 ### Index & Counting
 
 ```typescript
-"${index}"; // Current item index (0-based)
-"${index1}"; // Current item index (1-based)
-"${index(2)}"; // Parent entity index (2 levels up)
+"${index}"; // Current item index (1-based)
+"${index(2)}"; // Parent entity index (2 levels up, 1-based)
 "${count}"; // Total count for current entity
-"${count(1)}"; // Total count for parent entity
 ```
 
 ### Entity & Field References
@@ -386,7 +392,6 @@ JGD provides special context-aware patterns that reference generation state:
 ```typescript
 "${entity.name}"; // Current entity name
 "${field.name}"; // Current field name
-"${field.path}"; // Full field path (entity.field)
 ```
 
 ### Practical Examples
@@ -397,13 +402,13 @@ JGD provides special context-aware patterns that reference generation state:
     "users": {
       "count": 3,
       "fields": {
-        "id": "${index1}",                    // 1, 2, 3
-        "name": "${person.fullName}",
-        "summary": "User ${index1} of ${count}", // "User 1 of 3"
+        "id": "${index}",                     // 1, 2, 3
+        "name": "${name.fullName}"
+        "summary": "User ${index} of ${count}", // "User 1 of 3"
         "posts": {
           "count": [1, 3],
           "fields": {
-            "id": "${string.uuid}",
+            "id": "${uuid.v4}",
             "userId": "${index(2)}",          // Parent user index
             "title": "${lorem.sentence}",
             "meta": "Post in ${entity.name}"  // "Post in users"
@@ -426,9 +431,9 @@ const schema = {
   defaultLocale: "DE_DE", // German locale
   root: {
     fields: {
-      name: "${person.fullName}", // German names
-      address: "${location.streetAddress}", // German addresses
-      phone: "${phone.number}", // German phone format
+      name: "${name.fullName}", // German names
+      address: "${address.streetName}", // German addresses
+      phone: "${phone_number.phoneNumber}", // German phone format
     },
   },
 };
@@ -447,7 +452,7 @@ const schema = {
   seed: 42, // Same seed = same data
   root: {
     fields: {
-      name: "${person.fullName}",
+      name: "${name.fullName}",
     },
   },
 };
@@ -543,19 +548,19 @@ const ecommerceSchema = {
     categories: {
       count: 5,
       fields: {
-        id: "${index1}",
-        name: "${commerce.department}",
-        slug: "${lorem.slug}",
+        id: "${index}",
+        name: "${company.name}",
+        slug: "${lorem.word}",
         description: "${lorem.paragraph}",
       },
     },
     products: {
       count: [20, 50],
       fields: {
-        id: "${string.uuid}",
+        id: "${uuid.v4}",
         categoryId: "${index(1)}", // Reference category
-        name: "${commerce.productName}",
-        description: "${commerce.productDescription}",
+        name: "${lorem.word}",
+        description: "${lorem.sentence}",
         price: {
           number: {
             min: 9.99,
@@ -563,12 +568,12 @@ const ecommerceSchema = {
             integer: false,
           },
         },
-        sku: "${string.alphanumeric(8)}",
-        inStock: "${datatype.boolean}",
+        sku: "${number.numberWithFormat}",
+        inStock: "${boolean.boolean}",
         tags: {
           array: {
             count: [1, 5],
-            of: "${commerce.productAdjective}",
+            of: "${lorem.word}",
           },
         },
         metadata: {
@@ -598,59 +603,59 @@ const ecommerceSchema = {
 
 ```typescript
 const userSystemSchema = {
-  "$format": "jgd/v1",
-  "version": "2.0.0",
-  "defaultLocale": "EN",
-  "entities": {
-    "roles": {
-      "count": 3,
-      "fields": {
-        "id": "${index1}",
-        "name": ["admin", "user", "moderator"][${index}],
-        "permissions": {
-          "array": {
-            "count": [1, 5],
-            "of": "${hacker.verb}"
-          }
-        }
-      }
-    },
-    "users": {
-      "count": 100,
-      "fields": {
-        "id": "${string.ulid}",
-        "roleId": "${index(1)}", // Reference role
-        "profile": {
-          "firstName": "${person.firstName}",
-          "lastName": "${person.lastName}",
-          "email": "${internet.safeEmail}",
-          "avatar": "${internet.avatar}",
-          "bio": {
-            "optional": {
-              "of": "${lorem.sentence}",
-              "prob": 0.6
-            }
-          }
-        },
-        "account": {
-          "username": "${internet.username}",
-          "createdAt": "${date.past}",
-          "lastLoginAt": {
-            "optional": {
-              "of": "${date.recent}",
-              "prob": 0.8
-            }
+  $format: "jgd/v1",
+  version: "2.0.0",
+  defaultLocale: "EN",
+  entities: {
+    roles: {
+      count: 3,
+      fields: {
+        id: "${index}",
+        name: "role_${index}",
+        permissions: {
+          array: {
+            count: [1, 5],
+            of: "${lorem.word}",
           },
-          "isActive": "${datatype.boolean}",
-          "preferences": {
-            "theme": ["light", "dark", "auto"][${number.int(0,2)}],
-            "notifications": "${datatype.boolean}",
-            "language": "${location.countryCode}"
-          }
-        }
-      }
-    }
-  }
+        },
+      },
+    },
+    users: {
+      count: 100,
+      fields: {
+        id: "${ulid}",
+        roleId: "${index(1)}", // Reference role
+        profile: {
+          firstName: "${name.firstName}",
+          lastName: "${name.lastName}",
+          email: "${internet.safeEmail}",
+          avatar: "${internet.avatar}",
+          bio: {
+            optional: {
+              of: "${lorem.sentence}",
+              prob: 0.6,
+            },
+          },
+        },
+        account: {
+          username: "${internet.username}",
+          createdAt: "${chrono.dateTime}",
+          lastLoginAt: {
+            optional: {
+              of: "${chrono.dateTime}",
+              prob: 0.8,
+            },
+          },
+          isActive: "${boolean.boolean}",
+          preferences: {
+            theme: "light",
+            notifications: "${boolean.boolean}",
+            language: "${address.countryCode}",
+          },
+        },
+      },
+    },
+  },
 };
 ```
 
@@ -658,80 +663,81 @@ const userSystemSchema = {
 
 ```typescript
 const socialMediaSchema = {
-  "$format": "jgd/v1",
-  "version": "1.0.0",
-  "seed": 456,
-  "entities": {
-    "users": {
-      "count": 25,
-      "fields": {
-        "id": "${index1}",
-        "username": "${internet.username}",
-        "displayName": "${person.fullName}",
-        "followerCount": {
-          "number": {
-            "min": 0,
-            "max": 10000,
-            "integer": true
-          }
-        }
-      }
+  $format: "jgd/v1",
+  version: "1.0.0",
+  seed: 456,
+  entities: {
+    users: {
+      count: 25,
+      fields: {
+        id: "${index}",
+        username: "${internet.username}",
+        displayName: "${name.fullName}",
+        followerCount: {
+          number: {
+            min: 0,
+            max: 10000,
+            integer: true,
+          },
+        },
+      },
     },
-    "posts": {
-      "count": [50, 200],
-      "fields": {
-        "id": "${string.uuid}",
-        "authorId": "${index(1)}",
-        "content": "${lorem.paragraphs(1,3)}",
-        "hashtags": {
-          "array": {
-            "count": [0, 5],
-            "of": "#${lorem.word}"
-          }
-        },
-        "metrics": {
-          "likes": {
-            "number": {
-              "min": 0,
-              "max": 1000,
-              "integer": true
-            }
+    posts: {
+      count: [50, 200],
+      fields: {
+        id: "${uuid.v4}",
+        authorId: "${index(1)}",
+        content: "${lorem.paragraphs(1,3)}",
+        hashtags: {
+          array: {
+            count: [0, 5],
+            of: "#${lorem.word}",
           },
-          "shares": {
-            "number": {
-              "min": 0,
-              "max": 100,
-              "integer": true
-            }
-          },
-          "comments": {
-            "number": {
-              "min": 0,
-              "max": 50,
-              "integer": true
-            }
-          }
         },
-        "publishedAt": "${date.recent}",
-        "media": {
-          "optional": {
-            "of": {
-              "array": {
-                "count": [1, 3],
-                "of": {
-                  "fields": {              // Must be an Entity with fields
-                    "url": "${image.url}",
-                    "type": ["image", "video", "gif"][${number.int(0,2)}]
-                  }
-                }
-              }
+        metrics: {
+          likes: {
+            number: {
+              min: 0,
+              max: 1000,
+              integer: true,
             },
-            "prob": 0.4
-          }
-        }
-      }
-    }
-  }
+          },
+          shares: {
+            number: {
+              min: 0,
+              max: 100,
+              integer: true,
+            },
+          },
+          comments: {
+            number: {
+              min: 0,
+              max: 50,
+              integer: true,
+            },
+          },
+        },
+        publishedAt: "${chrono.dateTime}",
+        media: {
+          optional: {
+            of: {
+              array: {
+                count: [1, 3],
+                of: {
+                  fields: {
+                    // Must be an Entity with fields
+                    url: "${internet.safeEmail}",
+                    type: "image",
+                  },
+                },
+              },
+            },
+            prob: 0.4,
+          },
+        },
+      },
+    },
+  },
 };
 ```
 
@@ -836,7 +842,7 @@ const config = createGeneratorConfig("EN", 42);
 
 ## Examples
 
-Check the `examples/` directory for complete schema examples:
+Check the [`examples/`](../examples/) directory for complete schema examples:
 
 - `single-user.jgd` - Simple root mode example
 - `users-and-posts.jgd` - Complex entities with relationships
@@ -881,23 +887,31 @@ A: Check your probability value - `0.7` means 70% chance:
 ```
 
 **Q: Array generation fails with complex objects**
-A: Arrays support primitive values or simple objects:
+A: Arrays are designed for primitive values. For multiple complex objects, use entities with count:
 
 ```typescript
-// ✅ Good
+// ✅ Good - arrays for primitives
 "tags": { "array": { "count": 3, "of": "${lorem.word}" } }
+"scores": { "array": { "count": 5, "of": { "number": { "min": 1, "max": 100 } } } }
 
-// ✅ Also good
-"items": { "array": { "count": 2, "of": { "id": "${index}", "name": "Item" } } }
+// ✅ Good - entities with count for multiple complex objects
+"items": {
+  "count": [2, 5],              // Generate 2-5 items
+  "fields": {
+    "id": "${index}",
+    "name": "${name.fullName}",
+    "email": "${internet.safeEmail}"
+  }
+}
 ```
 
 **Q: Faker patterns not working**
 A: Ensure proper syntax with `${}` and check pattern exists:
 
 ```typescript
-"${person.firstName}"; // ✅ Correct
-"person.firstName"; // ❌ Missing ${}
-"${person.invalidPattern}"; // ❌ Pattern doesn't exist
+"${name.firstName}"; // ✅ Correct
+"name.firstName"; // ❌ Missing ${}
+"${name.invalidPattern}"; // ❌ Pattern doesn't exist
 ```
 
 ### Performance Tips
