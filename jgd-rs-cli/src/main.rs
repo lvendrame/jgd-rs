@@ -1,4 +1,3 @@
-use anyhow::Result;
 use clap::Parser;
 use std::{fs, path::PathBuf};
 
@@ -18,7 +17,7 @@ struct Cli {
     pretty: bool,
 }
 
-fn main() -> Result<()> {
+fn main() -> Result<(), String> {
     let cli = Cli::parse();
 
     let generated = jgd_rs::generate_jgd_from_file(&cli.input);
@@ -36,17 +35,13 @@ fn main() -> Result<()> {
     };
 
     if let Some(path) = cli.out {
-        fs::write(path, serialized)?;
+        let io_result = fs::write(path, serialized);
+        if let Err(error) = io_result {
+            println!("Error to record the file. Details: {}", error);
+        }
     } else {
         println!("{}", serialized);
     }
 
     Ok(())
 }
-
-// fn fingerprint(obj: &BTreeMap<String, Value>, keys: &[String]) -> String {
-//     let mut parts = Vec::new();
-//     for k in keys { if let Some(v) = obj.get(k) { parts.push(v.to_string()); } }
-//     parts.join("|")
-// }
-

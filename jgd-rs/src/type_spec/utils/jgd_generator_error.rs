@@ -1,6 +1,8 @@
 use std::fmt::Display;
 
-#[derive(Debug, Default, Clone)]
+use serde::Serialize;
+
+#[derive(Debug, Serialize, Default, Clone)]
 pub struct JgdGeneratorError {
     pub message: String,
     pub entity: Option<String>,
