@@ -1,6 +1,6 @@
 {
   "name": "jgd.js",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "A simple TypeScript library for generating realistic JSON data using declarative schema definitions",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

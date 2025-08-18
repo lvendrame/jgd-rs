@@ -93,8 +93,8 @@ const schema = {
       fields: {
         id: "${uuid.v4}",
         userId: { ref: "users.id" },
-        title: "${lorem.sentence(3,7)}",
-        content: "${lorem.paragraphs(2,4)}",
+        title: "${lorem.sentence}",
+        content: "${lorem.paragraphs}",
         tags: {
           array: {
             count: [1, 5],
@@ -231,7 +231,7 @@ JGD schemas follow a structured format that defines how your fake data should be
       "of": {                   // Complex objects in array
         "fields": {             // Must be an Entity with fields
           "id": "${index}",
-          "name": "${company.name}"
+          "name": "${company.companyName}"
         }
       }
     }
@@ -248,7 +248,7 @@ JGD schemas follow a structured format that defines how your fake data should be
       "of": {
         "fields": {             // Must be an Entity with fields
           "bio": "${lorem.paragraph}",
-          "avatar": "${internet.avatar}"
+          "avatar": "${internet.userAgent}"
         }
       },
       "prob": 0.8              // 80% chance this field exists
@@ -281,63 +281,82 @@ JGD supports 100+ faker patterns across multiple categories:
 
 ### Person & Identity
 
-````typescript
-### Person & Identity
 ```typescript
-"${name.firstName}"          // First name
-"${name.lastName}"           // Last name
-"${name.name}"               // Full name
-"${name.title}"              // Title prefix (Mr., Dr., etc.)
-"${name.suffix}"             // Name suffix (Jr., PhD, etc.)
-"${name.nameWithTitle}"      // Name with title
-````
-
-````
+"${name.firstName}"; // First name
+"${name.lastName}"; // Last name
+"${name.name}"; // Full name
+"${name.title}"; // Title prefix (Mr., Dr., etc.)
+"${name.suffix}"; // Name suffix (Jr., PhD, etc.)
+"${name.nameWithTitle}"; // Name with title
+```
 
 ### Internet & Communication
 
 ```typescript
-### Internet & Communication
-```typescript
-"${internet.freeEmail}"      // Free email address
-"${internet.safeEmail}"      // Safe email (example.com domain)
-"${internet.username}"       // Username
-"${internet.password}"       // Password
-"${internet.IPv4}"           // IPv4 address
-"${internet.IPv6}"           // IPv6 address
-"${internet.IP}"             // IP address
-"${internet.MACAddress}"     // MAC address
-"${internet.userAgent}"      // User agent
-"${phone_number.phoneNumber}" // Phone number
-"${phone_number.cellNumber}" // Cell number
-````
-
-````
+"${internet.freeEmail}"; // Free email address
+"${internet.freeEmailProvider}"; // Free email provider domain
+"${internet.safeEmail}"; // Safe email (example.com domain)
+"${internet.domainSuffix}"; // Domain suffix (.com, .org, etc.)
+"${internet.username}"; // Username
+"${internet.password}"; // Password
+"${internet.IPv4}"; // IPv4 address
+"${internet.IPv6}"; // IPv6 address
+"${internet.IP}"; // IP address
+"${internet.MACAddress}"; // MAC address
+"${internet.userAgent}"; // User agent string
+"${phone_number.phoneNumber}"; // Phone number
+"${phone_number.cellNumber}"; // Cell phone number
+```
 
 ### Location & Geography
 
 ```typescript
-"${address.countryName}"     // Country name
-"${address.countryCode}"     // Country code
-"${address.stateName}"       // State/province name
-"${address.stateAbbr}"       // State abbreviation
-"${address.cityName}"        // City name
-"${address.zipCode}"         // ZIP/postal code
-"${address.streetName}"      // Street name
-"${address.latitude}"        // Latitude coordinate
-"${address.longitude}"       // Longitude coordinate
-````
+"${address.cityPrefix}"; // City prefix
+"${address.citySuffix}"; // City suffix
+"${address.cityName}"; // City name
+"${address.countryName}"; // Country name
+"${address.countryCode}"; // Country code
+"${address.streetSuffix}"; // Street suffix
+"${address.streetName}"; // Street name
+"${address.timeZone}"; // Time zone
+"${address.stateName}"; // State/province name
+"${address.stateAbbr}"; // State abbreviation
+"${address.secondaryAddressType}"; // Secondary address type
+"${address.secondaryAddress}"; // Secondary address
+"${address.zipCode}"; // ZIP/postal code
+"${address.postCode}"; // Postal code
+"${address.buildingNumber}"; // Building number
+"${address.latitude}"; // Latitude coordinate
+"${address.longitude}"; // Longitude coordinate
+"${address.geohash}"; // Geohash
+```
 
 ### Commerce & Business
 
 ```typescript
-"${company.name}"; // Company name
+"${company.companyName}"; // Company name
 "${company.companySuffix}"; // Company suffix
+"${company.buzzword}"; // Business buzzword
+"${company.buzzwordMiddle}"; // Business buzzword (middle)
+"${company.buzzwordTail}"; // Business buzzword (tail)
 "${company.catchPhrase}"; // Company slogan
-"${company.bs}"; // Business speak
-"${finance.bitcoinAddress}"; // Bitcoin address
-"${finance.ethereumAddress}"; // Ethereum address
-"${finance.litecoinAddress}"; // Litecoin address
+"${company.bsVerb}"; // Business speak verb
+"${company.bsAdj}"; // Business speak adjective
+"${company.bsNoun}"; // Business speak noun
+"${company.bs}"; // Business speak phrase
+"${company.profession}"; // Profession
+"${company.industry}"; // Industry
+```
+
+### Finance & Currency
+
+```typescript
+"${finance.bic}"; // Bank Identifier Code
+"${finance.isin}"; // ISIN code
+"${currency.currencyCode}"; // Currency code (USD, EUR, etc.)
+"${currency.currencyName}"; // Currency name
+"${currency.currencySymbol}"; // Currency symbol ($, €, etc.)
+"${creditcard.creditCardNumber}"; // Credit card number
 ```
 
 ### Text & Content
@@ -351,28 +370,101 @@ JGD supports 100+ faker patterns across multiple categories:
 "${lorem.paragraphs}"; // Multiple paragraphs
 ```
 
+### Markdown & Formatting
+
+```typescript
+"${markdown.italicWord}"; // *italic* word
+"${markdown.boldWord}"; // **bold** word
+"${markdown.link}"; // [link](url)
+"${markdown.bulletPoints}"; // - bullet point
+"${markdown.listItems}"; // 1. numbered item
+"${markdown.blockQuoteSingleLine}"; // > single line quote
+"${markdown.blockQuoteMultiLine}"; // > multi line quote
+"${markdown.code}"; // `code`
+```
+
 ### Dates & Time
 
 ```typescript
 "${chrono.time}"; // Time string
 "${chrono.date}"; // Date string
 "${chrono.dateTime}"; // Date/time string
+"${chrono.duration}"; // Duration
+"${chrono.dateTimeBefore}"; // Date/time before specified date
+"${chrono.dateTimeAfter}"; // Date/time after specified date
+"${chrono.dateTimeBetween}"; // Date/time between two dates
 "${time.time}"; // Time string
 "${time.date}"; // Date string
 "${time.dateTime}"; // Date/time string
+"${time.duration}"; // Duration
+"${time.dateTimeBefore}"; // Date/time before specified date
+"${time.dateTimeAfter}"; // Date/time after specified date
+"${time.dateTimeBetween}"; // Date/time between two dates
 ```
 
-### Technical & Data
+### Colors
+
+```typescript
+"${color.hexColor}"; // Hex color (#ff0000)
+"${color.rgbColor}"; // RGB color
+"${color.rgbaColor}"; // RGBA color
+"${color.hslColor}"; // HSL color
+"${color.hslaColor}"; // HSLA color
+"${color.color}"; // Human-readable color name
+```
+
+### Numbers & Booleans
+
+```typescript
+"${number.digit}"; // Single digit (0-9)
+"${number.numberWithFormat}"; // Number with custom format
+"${boolean.boolean}"; // Boolean value
+```
+
+### Job & Career
+
+```typescript
+"${job.seniority}"; // Job seniority level
+"${job.field}"; // Job field/area
+"${job.position}"; // Job position
+"${job.title}"; // Job title
+```
+
+### HTTP & Technical
+
+```typescript
+"${http.rfcStatusCode}"; // RFC HTTP status code
+"${http.validStatusCode}"; // Valid HTTP status code
+"${barcode.isbn}"; // ISBN barcode
+"${barcode.isbn10}"; // ISBN-10
+"${barcode.isbn13}"; // ISBN-13
+```
+
+### Filesystem & Development
+
+```typescript
+"${filesystem.filePath}"; // File path
+"${filesystem.fileName}"; // File name
+"${filesystem.fileExtension}"; // File extension
+"${filesystem.dirPath}"; // Directory path
+"${filesystem.mimeType}"; // MIME type
+"${filesystem.semver}"; // Semantic version
+"${filesystem.semverStable}"; // Stable semantic version
+"${filesystem.semverUnstable}"; // Unstable semantic version
+```
+
+### Administrative & Automotive
+
+```typescript
+"${administrative.healthInsuranceCode}"; // Health insurance code
+"${automotive.licencePlate}"; // Vehicle license plate
+```
+
+### Unique Identifiers
 
 ```typescript
 "${ulid}"; // ULID
 "${uuid.v4}"; // UUID v4
-"${internet.IPv4}"; // IPv4 address
-"${internet.IPv6}"; // IPv6 address
-"${internet.MACAddress}"; // MAC address
-"${barcode.isbn}"; // ISBN barcode
-"${barcode.isbn10}"; // ISBN-10
-"${barcode.isbn13}"; // ISBN-13
 ```
 
 ## 🔗 Context-Aware Keys
@@ -403,7 +495,7 @@ JGD provides special context-aware patterns that reference generation state:
       "count": 3,
       "fields": {
         "id": "${index}",                     // 1, 2, 3
-        "name": "${name.fullName}"
+        "name": "${name.name}"
         "summary": "User ${index} of ${count}", // "User 1 of 3"
         "posts": {
           "count": [1, 3],
@@ -431,7 +523,7 @@ const schema = {
   defaultLocale: "DE_DE", // German locale
   root: {
     fields: {
-      name: "${name.fullName}", // German names
+      name: "${name.name}", // German names
       address: "${address.streetName}", // German addresses
       phone: "${phone_number.phoneNumber}", // German phone format
     },
@@ -452,7 +544,7 @@ const schema = {
   seed: 42, // Same seed = same data
   root: {
     fields: {
-      name: "${name.fullName}",
+      name: "${name.name}",
     },
   },
 };
@@ -549,7 +641,7 @@ const ecommerceSchema = {
       count: 5,
       fields: {
         id: "${index}",
-        name: "${company.name}",
+        name: "${company.companyName}",
         slug: "${lorem.word}",
         description: "${lorem.paragraph}",
       },
@@ -587,7 +679,7 @@ const ecommerceSchema = {
                     max: 50.0,
                   },
                 },
-                dimensions: "${lorem.words(3)}",
+                dimensions: "${lorem.words}",
               },
             },
             prob: 0.7,
@@ -629,7 +721,7 @@ const userSystemSchema = {
           firstName: "${name.firstName}",
           lastName: "${name.lastName}",
           email: "${internet.safeEmail}",
-          avatar: "${internet.avatar}",
+          avatar: "${internet.userAgent}",
           bio: {
             optional: {
               of: "${lorem.sentence}",
@@ -672,7 +764,7 @@ const socialMediaSchema = {
       fields: {
         id: "${index}",
         username: "${internet.username}",
-        displayName: "${name.fullName}",
+        displayName: "${name.name}",
         followerCount: {
           number: {
             min: 0,
@@ -687,7 +779,7 @@ const socialMediaSchema = {
       fields: {
         id: "${uuid.v4}",
         authorId: "${index(1)}",
-        content: "${lorem.paragraphs(1,3)}",
+        content: "${lorem.paragraphs}",
         hashtags: {
           array: {
             count: [0, 5],
@@ -899,7 +991,7 @@ A: Arrays are designed for primitive values. For multiple complex objects, use e
   "count": [2, 5],              // Generate 2-5 items
   "fields": {
     "id": "${index}",
-    "name": "${name.fullName}",
+    "name": "${name.name}",
     "email": "${internet.safeEmail}"
   }
 }
